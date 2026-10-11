@@ -56,6 +56,12 @@
     .revelar { animation: revelar .6s ease-out both; transform-origin: bottom; }
     @keyframes pulsar { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .pulsar { animation: pulsar .5s ease-in-out; }
+    /* Entrada de la ventana del ganador: crece desde 90% */
+    @keyframes modal-entrada { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-entrada { animation: modal-entrada .3s ease-out both; }
+    /* Confeti */
+    @keyframes confeti-caida { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+    .confeti { position: fixed; top: -12px; width: 10px; height: 14px; z-index: 70; border-radius: 2px; animation-name: confeti-caida; animation-timing-function: linear; animation-fill-mode: forwards; pointer-events: none; }
   </style>
 </head>
 
@@ -147,10 +153,6 @@
               <label for="reg-dorsal" class="etiqueta">No. Corredor (dorsal físico, ej. 001)</label>
               <input id="reg-dorsal" type="text" inputmode="numeric" class="campo cifras" autocomplete="off" required>
             </div>
-            <div>
-              <label for="reg-costo" class="etiqueta">Costo (Q)</label>
-              <input id="reg-costo" type="number" min="0" step="0.01" inputmode="decimal" class="campo cifras" required>
-            </div>
             <div class="sm:col-span-2">
               <label for="reg-facultad-select" class="etiqueta">Facultad</label>
               <!-- Select para admin/umgpb; input bloqueado para el resto de roles -->
@@ -168,6 +170,10 @@
             <div>
               <label for="reg-talla" class="etiqueta">Talla</label>
               <input id="reg-talla" type="text" class="campo" placeholder="Ej. M, XL, 32" autocomplete="off" maxlength="12" required>
+            </div>
+            <div>
+              <label for="reg-costo" class="etiqueta">Costo (Q) · automático</label>
+              <input id="reg-costo" type="number" step="0.01" inputmode="decimal" class="campo cifras cursor-not-allowed bg-slate-100 text-slate-700" readonly tabindex="-1">
             </div>
             <div class="sm:col-span-2 space-y-3">
               <div id="reg-alerta" class="hidden"></div>
@@ -251,10 +257,14 @@
 
       <!-- MÓDULO: TABLA DE POSICIONES (espejo del cronómetro de control de meta) -->
       <section id="mod-posiciones" class="modulo hidden">
+        <div class="mb-4 flex flex-wrap justify-end gap-2">
+          <button id="btn-pos-pdf" type="button" class="btn btn-rojo">Descargar PDF</button>
+          <button id="btn-pos-xlsx" type="button" class="btn btn-verde">Descargar Excel (XLSX)</button>
+        </div>
         <div class="grid gap-5 lg:grid-cols-[minmax(260px,1fr)_2fr]">
           <div class="tarjeta text-center lg:self-start">
             <h2 class="text-lg font-bold">Cronómetro</h2>
-            <p id="pos-crono" class="cifras mt-3 break-all text-4xl font-extrabold text-navy sm:text-5xl">00:00:00.000</p>
+            <p id="pos-crono" class="cifras mt-3 whitespace-nowrap text-[clamp(1.6rem,7vw,3.75rem)] font-extrabold text-navy">00:00:00.000</p>
             <p id="pos-estado" class="mt-3 text-sm text-slate-700">Esperando la salida…</p>
           </div>
           <div class="tarjeta">
@@ -278,9 +288,13 @@
           <h2 class="text-xl font-bold">Tabla de posiciones</h2>
           <p id="cat-estado" class="text-sm font-semibold text-slate-700"></p>
         </div>
+        <div class="mb-4 flex flex-wrap justify-end gap-2">
+          <button id="btn-cat-pdf" type="button" class="btn btn-rojo">Descargar PDF</button>
+          <button id="btn-cat-xlsx" type="button" class="btn btn-verde">Descargar Excel (XLSX)</button>
+        </div>
         <div class="tarjeta mb-5 text-center">
           <p class="text-sm font-semibold text-slate-700">Cronómetro de la carrera</p>
-          <p id="cat-crono" class="cifras mt-1 break-all text-3xl font-extrabold text-navy sm:text-5xl">00:00:00.000</p>
+          <p id="cat-crono" class="cifras mt-1 whitespace-nowrap text-[clamp(1.6rem,7vw,3.75rem)] font-extrabold text-navy">00:00:00.000</p>
         </div>
         <div id="cat-grid" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3"></div>
       </section>
@@ -309,18 +323,29 @@
         </div>
 
         <!-- Ventana emergente del ganador -->
-        <div id="modal-ganador" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="gan-lugar">
-          <div class="relative w-full max-w-md rounded-2xl bg-white p-6 text-center text-black shadow-xl">
-            <button type="button" data-cerrar-modal="modal-ganador" class="absolute right-3 top-3 rounded-full px-2 text-xl text-slate-600 hover:bg-slate-100" aria-label="Cerrar">✕</button>
-            <p id="gan-lugar" class="text-xs font-black uppercase tracking-widest text-umgRed"></p>
-            <p id="gan-nombre" class="mt-2 text-xl font-bold text-black sm:text-2xl"></p>
-            <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p id="gan-cat" class="text-sm font-semibold text-slate-700"></p>
-              <p class="mt-2 text-sm text-slate-700">Tiempo récord</p>
-              <p id="gan-tiempo" class="cifras text-lg font-bold text-red-600"></p>
+        <div id="modal-ganador" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="gan-lugar">
+          <div id="gan-panel" class="modal-entrada relative max-h-[92vh] w-11/12 max-w-5xl overflow-y-auto rounded-[32px] border-4 bg-white p-6 text-center text-black shadow-2xl sm:p-10" style="border-color:#FBBF24">
+            <button type="button" data-cerrar-modal="modal-ganador" class="absolute right-4 top-4 rounded-full p-2 text-3xl leading-none text-gray-400 hover:bg-slate-100 hover:text-gray-600" aria-label="Cerrar">&times;</button>
+            <div id="gan-icono" class="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 sm:h-36 sm:w-36">
+              <div id="gan-trofeo" class="h-16 w-16 sm:h-20 sm:w-20"></div>
             </div>
-            <p id="gan-mensaje" class="mt-3 text-sm italic text-gray-600"></p>
-            <button type="button" data-cerrar-modal="modal-ganador" class="btn btn-claro mt-5 w-full">Cerrar</button>
+            <p id="gan-lugar" class="mx-auto mt-5 inline-block rounded-full bg-red-600 px-6 py-2 text-xl font-black uppercase tracking-wide text-white sm:text-2xl"></p>
+            <p id="gan-nombre" class="mt-4 break-words text-4xl font-black tracking-tight text-[#0F172A] sm:text-6xl"></p>
+            <div class="mx-auto mt-6 max-w-3xl space-y-3 rounded-2xl border border-slate-200 bg-[#F8FAFC] p-5">
+              <div class="flex flex-col items-center justify-between gap-1 sm:flex-row sm:gap-4">
+                <span class="text-base font-semibold uppercase tracking-wider text-slate-500 sm:text-3xl">Categoría:</span>
+                <span id="gan-cat" class="text-xl font-bold text-slate-800 sm:text-3xl"></span>
+              </div>
+              <div class="flex flex-col items-center justify-between gap-1 sm:flex-row sm:gap-4">
+                <span class="text-base font-semibold uppercase tracking-wider text-slate-500 sm:text-3xl">Tiempo récord:</span>
+                <span id="gan-tiempo" class="cifras text-4xl font-black text-red-600 sm:text-6xl"></span>
+              </div>
+            </div>
+            <p id="gan-mensaje" class="mx-auto mt-6 max-w-3xl text-lg font-medium italic text-slate-600 sm:text-2xl"></p>
+            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <button id="btn-confeti" type="button" class="rounded-xl bg-[#FBBF24] px-6 py-3 text-sm font-bold uppercase tracking-wider text-slate-900 shadow hover:brightness-105 sm:text-base">Lanzar confeti</button>
+              <button type="button" data-cerrar-modal="modal-ganador" class="rounded-xl bg-[#0F172A] px-6 py-3 text-sm font-bold uppercase tracking-wider text-white shadow hover:brightness-110 sm:text-base">Cerrar</button>
+            </div>
           </div>
         </div>
       </section>
@@ -449,7 +474,7 @@
 /* ------------------------------ CONFIGURACIÓN ------------------------------ */
 const CONFIG = {
   // *** PEGA AQUÍ la URL de tu implementación de Apps Script (termina en /exec) ***
-  API_URL: 'https://script.google.com/macros/s/AKfycbwwwl-KITEzHYFfKF4f4_IBMZ8Ft-RyHyu9VwEcDH3xKNDlKuoa3k52yLsf463GSk0u/exec',
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
   TIMEOUT_MS: 30000,          // tiempo máximo de espera por petición
   CICLO_META_MS: 5000,        // cada cuánto se reintenta enviar lo pendiente en meta
   REFRESCO_META_MS: 15000,    // cada cuánto se actualiza la tabla de últimos 5
@@ -1572,6 +1597,7 @@ async function cargarPosiciones(silencioso = false) {
 
     $('pos-estado').textContent = !r.iniciada ? 'Esperando la salida…'
       : posMirror.finMs ? 'Carrera detenida' : 'Carrera en curso';
+    exp.general = r.posiciones;
     $('pos-total').textContent = r.posiciones.length;
     $('pos-body').innerHTML = r.posiciones.length
       ? r.posiciones.map((p) => `
@@ -1630,6 +1656,7 @@ async function cargarPosicionesCat(silencioso = false) {
     posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs;
     if (cambio) arrancarCronoPos();
 
+    exp.categorias = r.grupos;
     $('cat-estado').textContent = !r.iniciada ? 'Esperando la salida…'
       : r.finMs ? 'Carrera detenida' : 'Carrera en curso';
 
@@ -1859,16 +1886,27 @@ $('cer-podio').addEventListener('click', (e) => {
   }, 650);
 });
 
+/** Estilo de la ventana según el lugar: borde, fondo del icono, anillo y color del trofeo. */
+const GANADOR_ESTILO = {
+  1: { borde: '#FBBF24', fondo: '#FEF9C3', anillo: '#FBBF24', trofeo: '#D97706', badge: '¡PRIMER LUGAR!', frase: 'primer lugar' },
+  2: { borde: '#9CA3AF', fondo: '#E5E5E5', anillo: '#9CA3AF', trofeo: '#64748B', badge: 'SEGUNDO LUGAR', frase: 'segundo lugar' },
+  3: { borde: '#6B522F', fondo: '#E3C398', anillo: '#6B522F', trofeo: '#977547', badge: 'TERCER LUGAR', frase: 'tercer lugar' }
+};
+
 /** Llena y muestra la ventana emergente del ganador. */
 function abrirGanador(titulo, p, c) {
-  const info = LUGARES[p];
+  const est = GANADOR_ESTILO[p];
   cer.activo = titulo + '-' + p;
   cer.revelados[cer.activo] = true;                  // queda fijado al cerrar la ventana
-  $('gan-lugar').textContent = `${info.etiqueta} - ${info.medalla}`;
+  $('gan-panel').style.borderColor = est.borde;
+  $('gan-icono').style.background = est.fondo;
+  $('gan-icono').style.borderColor = est.anillo;
+  $('gan-trofeo').innerHTML = trofeoSVG(est.trofeo);
+  $('gan-lugar').textContent = est.badge;
   $('gan-nombre').textContent = c.nombre;
-  $('gan-cat').textContent = `${c.categoria} - ${c.rama}`;
+  $('gan-cat').textContent = `${c.categoria} ${c.rama}`;
   $('gan-tiempo').textContent = c.tiempo;
-  $('gan-mensaje').textContent = `¡Felicitaciones por la excelente participación y llevarte el ${info.frase} de la ${CEREMONIA_EDICION} de la carrera 5K UMG 2026!`;
+  $('gan-mensaje').textContent = `“¡Felicitaciones por la excelente participación y llevarte el ${est.frase} de la carrera 5K UMG!”`;
   abrirModal('modal-ganador');
 }
 
@@ -1877,6 +1915,138 @@ $('cer-categoria').addEventListener('change', () => { cer.revelados = {}; render
 
 /* Duración máxima de la carrera (1 hora): el cronómetro se detiene solo al cumplirla. */
 const DURACION_CARRERA_MS = 60 * 60 * 1000;
+
+/* ============================== DESCARGA DE TABLAS (PDF / XLSX) ============================== */
+/** Últimos datos recibidos de las tablas (para exportarlos sin volver a pedirlos). */
+const exp = { general: [], categorias: [] };
+
+/** PDF con membrete y pie de página de la UMG en todas las hojas. */
+function generarPDF(nombreArchivo, tituloDoc, bloques) {
+  if (!window.jspdf || !window.jspdf.jsPDF) { toast('La librería de PDF no cargó. Revisa tu conexión.', 'error'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+  const ancho = doc.internal.pageSize.getWidth();
+  const alto = doc.internal.pageSize.getHeight();
+  const fecha = new Date().toLocaleString('es-GT');
+  let y = 84;                                        // deja espacio para el membrete
+  bloques.forEach((b) => {
+    if (b.titulo) {
+      if (y > alto - 140) { doc.addPage(); y = 84; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(11, 36, 71);
+      doc.text(b.titulo, 28, y);
+      y += 10;
+    }
+    doc.autoTable({
+      head: [b.columnas], body: b.filas, startY: y,
+      margin: { top: 84, left: 28, right: 28, bottom: 50 },
+      styles: { fontSize: 9, cellPadding: 4, textColor: 0 },
+      headStyles: { fillColor: [11, 36, 71], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 242, 247] }
+    });
+    y = doc.lastAutoTable.finalY + 24;
+  });
+
+  // Membrete y pie de página en todas las hojas
+  const paginas = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= paginas; i++) {
+    doc.setPage(i);
+    doc.setFillColor(11, 36, 71); doc.rect(0, 0, ancho, 62, 'F');
+    let x = 28;
+    if (estado.logo) {
+      const hLogo = 42, wLogo = hLogo * estado.logo.w / estado.logo.h;
+      doc.setFillColor(255, 255, 255); doc.roundedRect(x - 3, 8, wLogo + 6, hLogo + 4, 4, 4, 'F');
+      doc.addImage(estado.logo.data, 'PNG', x, 10, wLogo, hLogo);
+      x += wLogo + 16;
+    }
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+    doc.text('Universidad Mariano Gálvez · Puerto Barrios', x, 28);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    doc.text(tituloDoc, x, 46);
+    doc.setFontSize(8);
+    doc.text('Generado: ' + fecha, ancho - 28, 28, { align: 'right' });
+    doc.text(`Página ${i} de ${paginas}`, ancho - 28, 44, { align: 'right' });
+
+    doc.setTextColor(0, 0, 0); doc.setFontSize(8);
+    doc.text('· Universidad Mariano Gálvez · Puerto Barrios, Izabal', ancho / 2, alto - 28, { align: 'center' });
+    doc.text('© M.A. Inga. Delmy Valiente', ancho / 2, alto - 16, { align: 'center' });
+  }
+  doc.save(nombreArchivo);
+}
+
+/** Excel (XLSX): una hoja por bloque, con título, fecha y pie de página escritos en las filas. */
+function generarXLSX(nombreArchivo, tituloDoc, hojas) {
+  if (!window.XLSX) { toast('La librería de Excel no cargó. Revisa tu conexión.', 'error'); return; }
+  const fecha = new Date().toLocaleString('es-GT');
+  const libro = XLSX.utils.book_new();
+  hojas.forEach((h) => {
+    const aoa = [
+      ['Universidad Mariano Gálvez · Puerto Barrios'],
+      [h.titulo ? tituloDoc + ' · ' + h.titulo : tituloDoc],
+      ['Generado: ' + fecha],
+      [],
+      h.columnas,
+      ...h.filas,
+      [],
+      ['· Universidad Mariano Gálvez · Puerto Barrios, Izabal'],
+      ['© M.A. Inga. Delmy Valiente']
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = h.columnas.map((c, i) => ({ wch: i === 2 ? 34 : 16 }));
+    XLSX.utils.book_append_sheet(libro, ws, h.hoja.slice(0, 31));
+  });
+  XLSX.writeFile(libro, nombreArchivo);
+}
+
+const hoyArchivo = () => new Date().toISOString().slice(0, 10);
+const COLUMNAS_GENERALES = ['Posición', 'No. corredor', 'Nombre', 'Tiempo', 'Categoría', 'Rama'];
+const COLUMNAS_CATEGORIA = ['Pos.', 'No.', 'Nombre', 'Tiempo'];
+
+$('btn-pos-pdf').addEventListener('click', () => {
+  if (!exp.general.length) { toast('Aún no hay llegadas para descargar.', 'info'); return; }
+  const filas = exp.general.map((p) => [p.posicion, p.dorsal, p.nombre, p.tiempo, p.categoria, p.rama]);
+  generarPDF(`Tabla_posiciones_generales_${hoyArchivo()}.pdf`, 'Tabla de posiciones generales',
+    [{ titulo: '', columnas: COLUMNAS_GENERALES, filas }]);
+});
+$('btn-pos-xlsx').addEventListener('click', () => {
+  if (!exp.general.length) { toast('Aún no hay llegadas para descargar.', 'info'); return; }
+  const filas = exp.general.map((p) => [p.posicion, p.dorsal, p.nombre, p.tiempo, p.categoria, p.rama]);
+  generarXLSX(`Tabla_posiciones_generales_${hoyArchivo()}.xlsx`, 'Tabla de posiciones generales',
+    [{ hoja: 'Generales', titulo: '', columnas: COLUMNAS_GENERALES, filas }]);
+});
+$('btn-cat-pdf').addEventListener('click', () => {
+  if (!exp.categorias.length) { toast('Aún no hay datos para descargar.', 'info'); return; }
+  const bloques = exp.categorias.map((g) => ({
+    titulo: g.titulo, columnas: COLUMNAS_CATEGORIA,
+    filas: g.lista.map((p) => [p.posicion, p.dorsal, p.nombre, p.tiempo])
+  }));
+  generarPDF(`Tabla_posiciones_por_categoria_${hoyArchivo()}.pdf`, 'Tabla de posiciones por categoría', bloques);
+});
+$('btn-cat-xlsx').addEventListener('click', () => {
+  if (!exp.categorias.length) { toast('Aún no hay datos para descargar.', 'info'); return; }
+  const hojas = exp.categorias.map((g) => ({
+    hoja: g.titulo, titulo: g.titulo, columnas: COLUMNAS_CATEGORIA,
+    filas: g.lista.map((p) => [p.posicion, p.dorsal, p.nombre, p.tiempo])
+  }));
+  generarXLSX(`Tabla_posiciones_por_categoria_${hoyArchivo()}.xlsx`, 'Tabla de posiciones por categoría', hojas);
+});
+
+/* ============================== CONFETI ============================== */
+/** Lanza piezas de colores que caen desde arriba de la pantalla. */
+function lanzarConfeti() {
+  const colores = ['#FBBF24', '#DC2626', '#0A192F', '#22C55E', '#3B82F6', '#F472B6'];
+  for (let i = 0; i < 140; i++) {
+    const p = document.createElement('span');
+    p.className = 'confeti';
+    p.style.left = (Math.random() * 100) + 'vw';
+    p.style.background = colores[i % colores.length];
+    p.style.animationDuration = (2.5 + Math.random() * 2) + 's';
+    p.style.animationDelay = (Math.random() * 0.6) + 's';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 5200);
+  }
+}
+$('btn-confeti').addEventListener('click', lanzarConfeti);
 
 /* ------------------------------- ARRANQUE ------------------------------- */
 window.addEventListener('online', () => { if (estado.token) { toast('Conexión recuperada.', 'ok'); cicloMeta(); } });
