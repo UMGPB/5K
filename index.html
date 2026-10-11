@@ -51,6 +51,11 @@
     @keyframes sacudir { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
     .sacudir { animation: sacudir .4s ease-in-out; }
     @media (prefers-reduced-motion: reduce) { .sacudir { animation: none; } }
+    /* Animación de revelación del ganador (tarjeta que gira y peldaño que pulsa) */
+    @keyframes revelar { 0% { transform: perspective(600px) rotateX(90deg); opacity: 0; } 100% { transform: perspective(600px) rotateX(0); opacity: 1; } }
+    .revelar { animation: revelar .6s ease-out both; transform-origin: bottom; }
+    @keyframes pulsar { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .pulsar { animation: pulsar .5s ease-in-out; }
   </style>
 </head>
 
@@ -297,10 +302,10 @@
         <div id="cer-aviso" class="hidden mb-4"></div>
 
         <!-- Podio -->
-        <div class="overflow-hidden rounded-2xl bg-[#0A192F] p-4 shadow-xl sm:p-8">
-          <p class="mb-4 text-center text-xs font-bold uppercase tracking-widest text-white/70">5K UMG · VI Edición · Puerto Barrios</p>
+        <div class="overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-white p-4 shadow-xl sm:p-8">
+          <p class="mb-4 text-center text-xs font-bold uppercase tracking-widest text-slate-500">5K UMG · VI Edición · Puerto Barrios</p>
           <div id="cer-podio" class="grid grid-cols-3 items-end gap-2 sm:gap-6"></div>
-          <div class="mt-0 h-2 rounded-b-xl bg-gradient-to-r from-red-700 via-[#0A192F] to-red-700"></div>
+          <div class="mt-0 h-3 rounded-b-xl bg-gradient-to-r from-red-600 via-blue-900 to-red-600"></div>
         </div>
 
         <!-- Ventana emergente del ganador -->
@@ -444,7 +449,7 @@
 /* ------------------------------ CONFIGURACIÓN ------------------------------ */
 const CONFIG = {
   // *** PEGA AQUÍ la URL de tu implementación de Apps Script (termina en /exec) ***
-  API_URL: 'https://script.google.com/macros/s/AKfycbwwwl-KITEzHYFfKF4f4_IBMZ8Ft-RyHyu9VwEcDH3xKNDlKuoa3k52yLsf463GSk0u/exec',
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
   TIMEOUT_MS: 30000,          // tiempo máximo de espera por petición
   CICLO_META_MS: 5000,        // cada cuánto se reintenta enviar lo pendiente en meta
   REFRESCO_META_MS: 15000,    // cada cuánto se actualiza la tabla de últimos 5
@@ -1116,21 +1121,26 @@ async function cargarEstadoMeta(silencioso = false) {
 function actualizarUIMeta() {
   const iniciada = !!meta.inicioMs;
   const detenida = iniciada && !!meta.finMs;
-  const puedeIniciar = esAdmin(); // solo admin / umgpb inician la carrera
-  $('meta-inicio').classList.toggle('hidden', iniciada || !puedeIniciar);
+  const admin = esAdmin();                           // admin / umgpb
+  $('meta-inicio').classList.toggle('hidden', iniciada || !admin);
   $('meta-captura').classList.toggle('hidden', !iniciada);
   $('crono').classList.toggle('hidden', !iniciada);
   $('meta-sync').classList.toggle('hidden', !(iniciada && !meta.sincronizado));
-  $('btn-detener').classList.toggle('hidden', !iniciada || detenida);
+  $('btn-detener').classList.toggle('hidden', !iniciada || detenida || !admin);
   $('meta-detenida').classList.toggle('hidden', !detenida);
+  // Con el cronómetro detenido, solo admin / umgpb pueden registrar llegadas
+  const bloquear = detenida && !admin;
+  $('meta-dorsal').disabled = bloquear;
+  $('btn-ingresar-meta').disabled = bloquear;
   if (detenida) {
-    $('meta-detenida').textContent = `Cronómetro detenido a las ${new Date(meta.finMs).toLocaleTimeString('es-GT', { hour12: false })}. Las llegadas se siguen registrando.`;
+    $('meta-detenida').textContent = `Cronómetro detenido a las ${new Date(meta.finMs).toLocaleTimeString('es-GT', { hour12: false })}. ` +
+      (admin ? 'Las llegadas se siguen registrando.' : 'Solo administración puede registrar llegadas.');
   }
   $('meta-estado').textContent = detenida ? 'Carrera detenida'
     : iniciada ? `Carrera en curso · salida a las ${new Date(meta.inicioMs).toLocaleTimeString('es-GT', { hour12: false })}`
-    : puedeIniciar ? 'La carrera aún no ha iniciado.'
+    : admin ? 'La carrera aún no ha iniciado.'
     : 'Esperando que el administrador inicie la carrera.';
-  if (iniciada) enfocarMeta();
+  if (iniciada && !bloquear) enfocarMeta();
 }
 
 /** Cronómetro en pantalla (se actualiza cada 50 ms). */
@@ -1138,8 +1148,19 @@ function arrancarCrono() {
   detenerCrono();
   // Si la carrera ya fue detenida, el cronómetro queda congelado en el tiempo final
   if (meta.finMs) { $('crono').textContent = fmtCrono(meta.finMs - meta.inicioMs); return; }
-  const tick = () => { $('crono').textContent = fmtCrono(Date.now() - meta.inicioMs); };
+  const tick = () => {
+    const t = Date.now() - meta.inicioMs;
+    if (t >= DURACION_CARRERA_MS) {                  // se cumplió 1 hora: se detiene automáticamente
+      detenerCrono();
+      meta.finMs = meta.inicioMs + DURACION_CARRERA_MS;
+      $('crono').textContent = fmtCrono(DURACION_CARRERA_MS);
+      actualizarUIMeta();
+      return;
+    }
+    $('crono').textContent = fmtCrono(t);
+  };
   tick();
+  if (meta.finMs) return;
   meta.timerCrono = setInterval(tick, 50);
 }
 function detenerCrono() { clearInterval(meta.timerCrono); meta.timerCrono = null; }
@@ -1524,7 +1545,12 @@ function detenerPosiciones() {
 
 /** Dibuja el cronómetro espejo con la hora de salida que guarda el servidor. */
 function dibujarCronoPos() {
-  const t = !posMirror.inicioMs ? '00:00:00.000' : fmtCrono((posMirror.finMs || Date.now()) - posMirror.inicioMs);
+  let t = '00:00:00.000';
+  if (posMirror.inicioMs) {
+    // máximo 1 hora: si ya se cumplió, el cronómetro queda en 60:00.000
+    const fin = posMirror.finMs || Math.min(Date.now(), posMirror.inicioMs + DURACION_CARRERA_MS);
+    t = fmtCrono(fin - posMirror.inicioMs);
+  }
   $('pos-crono').textContent = t;
   if ($('cat-crono')) $('cat-crono').textContent = t;
 }
@@ -1724,13 +1750,13 @@ function laurelSVG(color) {
 }
 
 /** Estado del podio: datos, categoría y lugares ya revelados. */
-const cer = { grupos: [], fuente: '', revelados: {}, activo: null };
+const cer = { grupos: [], fuente: '', revelados: {}, activo: null, animando: null };
 
 /** Configuración visual de cada lugar. */
 const LUGARES = {
-  1: { color: '#D4AF37', alto: 250, etiqueta: '1er Lugar', medalla: 'Medalla de Oro', frase: 'primer lugar' },
-  2: { color: '#C0C0C0', alto: 185, etiqueta: '2do Lugar', medalla: 'Medalla de Plata', frase: 'segundo lugar' },
-  3: { color: '#CD7F32', alto: 135, etiqueta: '3er Lugar', medalla: 'Medalla de Bronce', frase: 'tercer lugar' }
+  1: { color: '#F5C518', alto: 250, titulo: 'Campeón 5K', etiqueta: '1er Lugar', medalla: 'Medalla de Oro', frase: 'primer lugar' },
+  2: { color: '#C0C0C0', alto: 190, titulo: 'Segundo lugar', etiqueta: '2do Lugar', medalla: 'Medalla de Plata', frase: 'segundo lugar' },
+  3: { color: '#CD7F32', alto: 140, titulo: 'Tercer lugar', etiqueta: '3er Lugar', medalla: 'Medalla de Bronce', frase: 'tercer lugar' }
 };
 
 /** Entrada al módulo: carga los datos (Google Sheets o prueba) y dibuja el podio oculto. */
@@ -1745,7 +1771,7 @@ async function abrirCeremonia() {
     const r = await api('getPosicionesCategoria');     // datos reales desde Google Sheets (a través del backend)
     if (!r.ok) throw new Error(r.mensaje);
     cer.grupos = r.grupos;
-    cer.fuente = 'Datos en vivo de Google Sheets';
+    cer.fuente = '';
     ocultarAlerta('cer-aviso');
   } catch (err) {
     cer.grupos = mockGrupos();
@@ -1756,11 +1782,31 @@ async function abrirCeremonia() {
   renderPodio();
 }
 
-/** Tarjeta que queda fija sobre el peldaño después de revelar al ganador. */
-function tarjetaPodio(c, p) {
+/** Trofeo (icono tipo copa) en el color del lugar. */
+function trofeoSVG(color) {
+  return `<svg viewBox="0 0 24 24" class="h-full w-full" aria-hidden="true">
+    <path fill="${color}" d="M6 3h12v5a6 6 0 0 1-12 0V3z"/>
+    <path fill="none" stroke="${color}" stroke-width="1.6" d="M6 5H3.5v2a2.5 2.5 0 0 0 2.5 2.5M18 5h2.5v2a2.5 2.5 0 0 1-2.5 2.5"/>
+    <path fill="${color}" d="M10.5 14h3v3h2.5v2h-8v-2h2.5z"/>
+  </svg>`;
+}
+
+/** Tarjeta con "--" que aparece sobre el peldaño antes de revelar al ganador. */
+function tarjetaVacia(p) {
   return `
-    <div class="mb-2 rounded-xl bg-white p-2 text-center text-black shadow-md ring-1 ring-slate-200">
-      <p class="text-[10px] font-black uppercase text-umgRed sm:text-xs">${p}º lugar</p>
+    <div class="mb-2 rounded-xl border-2 bg-white p-2 text-center text-black shadow-md" style="border-color:${LUGARES[p].color}">
+      <div class="mx-auto mb-1 h-8 w-8">${trofeoSVG('#9ca3af')}</div>
+      <p class="text-sm font-bold text-slate-400">--</p>
+      <p class="text-xs font-bold text-slate-300">--:--</p>
+      <p class="text-[10px] text-slate-300">--</p>
+    </div>`;
+}
+
+/** Tarjeta del ganador ya revelado (con animación si acaba de revelarse). */
+function tarjetaPodio(c, p, animar) {
+  return `
+    <div class="mb-2 rounded-xl border-2 bg-white p-2 text-center text-black shadow-md ${animar ? 'revelar' : ''}" style="border-color:${LUGARES[p].color}">
+      <div class="mx-auto mb-1 h-8 w-8">${trofeoSVG(LUGARES[p].color)}</div>
       <p class="break-words text-xs font-bold leading-tight sm:text-sm">${esc(c.nombre)}</p>
       <p class="cifras whitespace-nowrap text-[11px] font-bold text-red-600 sm:text-sm">${esc(c.tiempo)}</p>
       <p class="break-words text-[10px] text-slate-700 sm:text-xs">${esc(c.categoria)} · ${esc(c.rama)}</p>
@@ -1774,35 +1820,43 @@ function renderPodio() {
   $('cer-podio').innerHTML = [2, 1, 3].map((p) => {
     const c = grupo.lista.find((x) => x.posicion === p);
     const clave = titulo + '-' + p;
-    const revelado = !!(c && cer.revelados[clave]);
     const info = LUGARES[p];
-    const estadoTxt = !c ? 'Sin registro' : revelado ? 'Revelado' : 'Toca para revelar';
+    const animar = cer.animando === clave;
+    const mostrar = !!c && (cer.revelados[clave] || animar);
     return `
       <div class="flex min-w-0 flex-col justify-end">
-        ${revelado ? tarjetaPodio(c, p) : ''}
+        ${mostrar ? tarjetaPodio(c, p, animar) : tarjetaVacia(p)}
         <button type="button" data-lugar="${p}"
-          class="relative w-full rounded-t-xl border-b-4 border-red-600 px-1 pb-3 pt-2 text-white shadow-lg transition hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-white/40"
-          style="height:${info.alto}px;background:linear-gradient(180deg,#16335f,#0A192F)">
-          <div class="relative mx-auto h-16 w-16 sm:h-24 sm:w-24">
+          class="relative flex w-full flex-col items-center rounded-t-2xl px-2 pb-3 pt-4 text-white shadow-lg transition hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-blue-300 ${animar ? 'pulsar' : ''}"
+          style="height:${info.alto}px;background:linear-gradient(180deg,#1f4fb8,#0a2470);border-top:5px solid ${info.color}">
+          <div class="relative h-14 w-14 sm:h-20 sm:w-20">
             ${laurelSVG(info.color)}
-            <span class="absolute inset-0 flex items-center justify-center text-2xl font-black sm:text-4xl" style="color:${info.color}">${p}</span>
+            <span class="absolute inset-0 flex items-center justify-center text-xl font-black sm:text-3xl" style="color:${info.color}">${p}</span>
           </div>
-          <span class="mt-1 block text-[10px] font-bold uppercase tracking-wide text-white/80 sm:text-sm">${estadoTxt}</span>
+          <div class="mt-1 h-7 w-7 sm:h-9 sm:w-9">${trofeoSVG(info.color)}</div>
+          <span class="mt-auto w-full rounded-lg border-2 bg-black/25 px-1 py-1 text-center text-[9px] font-bold uppercase leading-tight sm:text-xs" style="border-color:${info.color}">${info.titulo}</span>
         </button>
       </div>`;
   }).join('');
 }
 
-/** Clic en un peldaño: abre la ventana del ganador (si hay corredor en ese lugar). */
+/** Clic en un peldaño: anima la revelación y luego abre la ventana del ganador. */
 $('cer-podio').addEventListener('click', (e) => {
   const b = e.target.closest('[data-lugar]');
-  if (!b) return;
+  if (!b || cer.animando) return;
   const p = Number(b.dataset.lugar);
   const titulo = $('cer-categoria').value;
   const grupo = cer.grupos.find((g) => g.titulo === titulo);
   const c = grupo && grupo.lista.find((x) => x.posicion === p);
   if (!c) { toast('Aún no hay corredor registrado en este lugar.', 'info'); return; }
-  abrirGanador(titulo, p, c);
+  const clave = titulo + '-' + p;
+  if (cer.revelados[clave]) { abrirGanador(titulo, p, c); return; } // ya revelado: solo muestra la ventana
+  cer.animando = clave;                                              // inicia la animación
+  renderPodio();
+  setTimeout(() => {
+    cer.animando = null;
+    abrirGanador(titulo, p, c);
+  }, 650);
 });
 
 /** Llena y muestra la ventana emergente del ganador. */
@@ -1820,6 +1874,9 @@ function abrirGanador(titulo, p, c) {
 
 /** Cambiar de categoría reinicia el podio en estado oculto. */
 $('cer-categoria').addEventListener('change', () => { cer.revelados = {}; renderPodio(); });
+
+/* Duración máxima de la carrera (1 hora): el cronómetro se detiene solo al cumplirla. */
+const DURACION_CARRERA_MS = 60 * 60 * 1000;
 
 /* ------------------------------- ARRANQUE ------------------------------- */
 window.addEventListener('online', () => { if (estado.token) { toast('Conexión recuperada.', 'ok'); cicloMeta(); } });
