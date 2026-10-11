@@ -17,7 +17,7 @@
     tailwind.config = {
       theme: {
         extend: {
-          colors: { navy: { DEFAULT: '#0B2447', 700: '#071A35', 50: '#E8EDF6' } },
+          colors: { navy: { DEFAULT: '#0B2447', 700: '#071A35', 50: '#E8EDF6' }, umgRed: '#C8102E', umgBlue: '#0A3D8F' },
           fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] }
         }
       }
@@ -162,7 +162,7 @@
             </div>
             <div>
               <label for="reg-talla" class="etiqueta">Talla</label>
-              <select id="reg-talla" class="campo" required></select>
+              <input id="reg-talla" type="text" class="campo" placeholder="Ej. M, XL, 32" autocomplete="off" maxlength="12" required>
             </div>
             <div class="sm:col-span-2 space-y-3">
               <div id="reg-alerta" class="hidden"></div>
@@ -222,6 +222,7 @@
           <div id="meta-captura" class="tarjeta hidden">
             <label for="meta-dorsal" class="etiqueta text-base">Número del corredor que cruza la meta (presiona ENTER)</label>
             <input id="meta-dorsal" type="text" inputmode="numeric" autocomplete="off" class="campo cifras !py-4 text-center text-3xl font-bold">
+            <button id="btn-ingresar-meta" type="button" class="btn btn-navy mt-3 w-full !py-3 text-lg">INGRESAR</button>
             <p id="meta-ultima-captura" class="cifras mt-2 min-h-[1.5rem] text-center text-sm font-semibold text-navy"></p>
             <div id="meta-cola" class="mt-3 space-y-2"></div>
           </div>
@@ -272,7 +273,51 @@
           <h2 class="text-xl font-bold">Tabla de posiciones</h2>
           <p id="cat-estado" class="text-sm font-semibold text-slate-700"></p>
         </div>
+        <div class="tarjeta mb-5 text-center">
+          <p class="text-sm font-semibold text-slate-700">Cronómetro de la carrera</p>
+          <p id="cat-crono" class="cifras mt-1 break-all text-3xl font-extrabold text-navy sm:text-5xl">00:00:00.000</p>
+        </div>
         <div id="cat-grid" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3"></div>
+      </section>
+
+      <!-- MÓDULO: CEREMONIA DE PREMIACIÓN (podio) -->
+      <section id="mod-ceremonia" class="modulo hidden">
+        <div class="mb-5 text-center">
+          <span class="text-xs font-black tracking-widest text-umgRed uppercase bg-red-50 px-3 py-1 rounded-full border border-red-100">Podio Oficial de Ganadores</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-umgBlue mt-2 uppercase italic">Ceremonia de Premiación</h2>
+        </div>
+
+        <div class="tarjeta mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div class="w-full sm:max-w-xs">
+            <label for="cer-categoria" class="etiqueta">Categoría a revelar</label>
+            <select id="cer-categoria" class="campo"></select>
+          </div>
+          <p id="cer-fuente" class="text-sm font-semibold text-slate-700"></p>
+        </div>
+        <div id="cer-aviso" class="hidden mb-4"></div>
+
+        <!-- Podio -->
+        <div class="overflow-hidden rounded-2xl bg-[#0A192F] p-4 shadow-xl sm:p-8">
+          <p class="mb-4 text-center text-xs font-bold uppercase tracking-widest text-white/70">5K UMG · VI Edición · Puerto Barrios</p>
+          <div id="cer-podio" class="grid grid-cols-3 items-end gap-2 sm:gap-6"></div>
+          <div class="mt-0 h-2 rounded-b-xl bg-gradient-to-r from-red-700 via-[#0A192F] to-red-700"></div>
+        </div>
+
+        <!-- Ventana emergente del ganador -->
+        <div id="modal-ganador" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="gan-lugar">
+          <div class="relative w-full max-w-md rounded-2xl bg-white p-6 text-center text-black shadow-xl">
+            <button type="button" data-cerrar-modal="modal-ganador" class="absolute right-3 top-3 rounded-full px-2 text-xl text-slate-600 hover:bg-slate-100" aria-label="Cerrar">✕</button>
+            <p id="gan-lugar" class="text-xs font-black uppercase tracking-widest text-umgRed"></p>
+            <p id="gan-nombre" class="mt-2 text-xl font-bold text-black sm:text-2xl"></p>
+            <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p id="gan-cat" class="text-sm font-semibold text-slate-700"></p>
+              <p class="mt-2 text-sm text-slate-700">Tiempo récord</p>
+              <p id="gan-tiempo" class="cifras text-lg font-bold text-red-600"></p>
+            </div>
+            <p id="gan-mensaje" class="mt-3 text-sm italic text-gray-600"></p>
+            <button type="button" data-cerrar-modal="modal-ganador" class="btn btn-claro mt-5 w-full">Cerrar</button>
+          </div>
+        </div>
       </section>
 
       <!-- MÓDULO 5: CONSULTAS, REPORTES Y RESUMEN -->
@@ -369,7 +414,7 @@
         <div class="sm:col-span-2"><label for="ed-facultad" class="etiqueta">Facultad</label><select id="ed-facultad" class="campo"></select></div>
         <div><label for="ed-categoria" class="etiqueta">Categoría</label><select id="ed-categoria" class="campo"></select></div>
         <div><label for="ed-rama" class="etiqueta">Rama</label><select id="ed-rama" class="campo"></select></div>
-        <div><label for="ed-talla" class="etiqueta">Talla</label><select id="ed-talla" class="campo"></select></div>
+        <div><label for="ed-talla" class="etiqueta">Talla</label><input id="ed-talla" type="text" class="campo" autocomplete="off" maxlength="12"></div>
         <div id="ed-alerta" class="hidden sm:col-span-2"></div>
         <div class="flex justify-end gap-2 pt-1 sm:col-span-2">
           <button type="button" class="btn btn-claro" data-cerrar-modal="modal-editar">Cancelar</button>
@@ -399,7 +444,7 @@
 /* ------------------------------ CONFIGURACIÓN ------------------------------ */
 const CONFIG = {
   // *** PEGA AQUÍ la URL de tu implementación de Apps Script (termina en /exec) ***
-  API_URL: 'https://script.google.com/macros/s/AKfycbwwwl-KITEzHYFfKF4f4_IBMZ8Ft-RyHyu9VwEcDH3xKNDlKuoa3k52yLsf463GSk0u/exec',
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
   TIMEOUT_MS: 30000,          // tiempo máximo de espera por petición
   CICLO_META_MS: 5000,        // cada cuánto se reintenta enviar lo pendiente en meta
   REFRESCO_META_MS: 15000,    // cada cuánto se actualiza la tabla de últimos 5
@@ -412,7 +457,8 @@ const CONFIG = {
     reportes:   '📋',
     meta:       '🏁',
     posiciones: '🏆',
-    posicionesCat: '🥇'
+    posicionesCat: '🥇',
+    ceremonia: '🎖️'
   }
 };
 
@@ -424,7 +470,8 @@ const MODULOS = {
   meta:      { etiqueta: 'Control de meta',       seccion: 'mod-meta' },
   reportes:  { etiqueta: 'Consultas y reportes',  seccion: 'mod-reportes' },
   posiciones: { etiqueta: 'Tabla de posiciones generales', seccion: 'mod-posiciones' },
-  posicionesCat: { etiqueta: 'Tabla de posiciones por categoría', seccion: 'mod-posicionesCat' }
+  posicionesCat: { etiqueta: 'Tabla de posiciones por categoría', seccion: 'mod-posicionesCat' },
+  ceremonia: { etiqueta: 'Ceremonia de Premiación', seccion: 'mod-ceremonia' }
 };
 
 /** Estado global de la aplicación (en memoria). */
@@ -535,6 +582,7 @@ function abrirModal(id) {
 function cerrarModal(id) {
   $(id).classList.add('hidden');
   if (estado.moduloActivo === 'meta') setTimeout(enfocarMeta, 50);
+  if (id === 'modal-ganador') renderPodio(); // muestra la tarjeta del ganador sobre el peldaño
 }
 document.querySelectorAll('[data-cerrar-modal]').forEach((b) =>
   b.addEventListener('click', () => cerrarModal(b.dataset.cerrarModal)));
@@ -712,7 +760,8 @@ function renderMenu() {
     reportes:   { etiqueta: 'Consultas y reportes', desc: 'Listados, exportación a PDF o Excel y resumen de la carrera.' },
     meta:       { etiqueta: 'Control de meta',      desc: 'Iniciar, detener el cronómetro y registrar las llegadas.' },
     posiciones: { etiqueta: 'Tabla de posiciones generales', desc: 'Cronómetro en vivo y posiciones de todos los corredores.' },
-    posicionesCat: { etiqueta: 'Tabla de posiciones por categoría', desc: 'Posiciones por categoría y rama.' }
+    posicionesCat: { etiqueta: 'Tabla de posiciones por categoría', desc: 'Posiciones por categoría y rama.' },
+    ceremonia: { etiqueta: 'Ceremonia de Premiación', desc: 'Revelar el podio ganador de cada categoría.' }
   };
   $('menu-botones').innerHTML = Object.keys(info).map((m) => {
     const habilitado = estado.modulos.includes(m);
@@ -745,6 +794,7 @@ function mostrarModulo(id) {
   if (id === 'reportes') { cargarRegistros(); cargarResumen(); }
   if (id === 'posiciones') abrirPosiciones();
   if (id === 'posicionesCat') abrirPosicionesCat();
+  if (id === 'ceremonia') abrirCeremonia();
 }
 
 /** Mensaje inicial de las listas de búsqueda. */
@@ -778,7 +828,7 @@ async function prepararFormularioRegistro() {
   }
   llenarSelect($('reg-categoria'), l.categorias, 'Selecciona la categoría', $('reg-categoria').value);
   llenarSelect($('reg-rama'), l.ramas, 'Selecciona la rama', $('reg-rama').value);
-  llenarSelect($('reg-talla'), l.tallas, 'Selecciona la talla', $('reg-talla').value);
+  if (!estado.puedeElegirFacultad && !$('reg-costo').value) aplicarCostoPorFacultad(estado.facultad); // costo automático para facultad fija
 }
 
 $('form-registro').addEventListener('submit', async (e) => {
@@ -960,7 +1010,7 @@ $('btn-modificar').addEventListener('click', async () => {
   llenarSelect($('ed-facultad'), l.facultades, 'Selecciona la facultad', r.facultad);
   llenarSelect($('ed-categoria'), l.categorias, 'Selecciona la categoría', r.categoria);
   llenarSelect($('ed-rama'), l.ramas, 'Selecciona la rama', r.rama);
-  llenarSelect($('ed-talla'), l.tallas, 'Selecciona la talla', r.talla);
+  $('ed-talla').value = r.talla;
   $('ed-facultad').disabled = !estado.puedeElegirFacultad; // otros roles no cambian la facultad
   $('form-editar').dataset.dorsalOriginal = r.dorsal; // sirve para ubicar la fila en el servidor
   ocultarAlerta('ed-alerta');
@@ -1066,7 +1116,8 @@ async function cargarEstadoMeta(silencioso = false) {
 function actualizarUIMeta() {
   const iniciada = !!meta.inicioMs;
   const detenida = iniciada && !!meta.finMs;
-  $('meta-inicio').classList.toggle('hidden', iniciada);
+  const puedeIniciar = esAdmin(); // solo admin / umgpb inician la carrera
+  $('meta-inicio').classList.toggle('hidden', iniciada || !puedeIniciar);
   $('meta-captura').classList.toggle('hidden', !iniciada);
   $('crono').classList.toggle('hidden', !iniciada);
   $('meta-sync').classList.toggle('hidden', !(iniciada && !meta.sincronizado));
@@ -1075,11 +1126,10 @@ function actualizarUIMeta() {
   if (detenida) {
     $('meta-detenida').textContent = `Cronómetro detenido a las ${new Date(meta.finMs).toLocaleTimeString('es-GT', { hour12: false })}. Las llegadas se siguen registrando.`;
   }
-  $('meta-estado').textContent = detenida
-    ? 'Carrera detenida'
-    : iniciada
-      ? `Carrera en curso · salida a las ${new Date(meta.inicioMs).toLocaleTimeString('es-GT', { hour12: false })}`
-      : 'La carrera aún no ha iniciado.';
+  $('meta-estado').textContent = detenida ? 'Carrera detenida'
+    : iniciada ? `Carrera en curso · salida a las ${new Date(meta.inicioMs).toLocaleTimeString('es-GT', { hour12: false })}`
+    : puedeIniciar ? 'La carrera aún no ha iniciado.'
+    : 'Esperando que el administrador inicie la carrera.';
   if (iniciada) enfocarMeta();
 }
 
@@ -1145,21 +1195,9 @@ $('btn-reiniciar-carrera').addEventListener('click', async () => {
 
 /* ---- Captura de llegadas (ENTER) ---- */
 $('meta-dorsal').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  const llegadaMs = Date.now();                      // *** hora exacta del ENTER ***
-  const input = e.target;
-  const texto = input.value.trim();
-  if (!texto) return;
-  if (!/^\d{1,6}$/.test(texto)) { toast('Escribe solo el número del corredor.', 'error'); beep(); input.select(); return; }
-  if (!meta.inicioMs) { toast('La carrera aún no ha iniciado.', 'error'); return; }
-
-  input.value = '';                                  // listo para el siguiente corredor sin tocar el mouse
-  const tiempoMs = llegadaMs - meta.inicioMs;
-  meta.cola.push({ id: `${llegadaMs}-${texto}`, dorsal: texto, llegadaMs, tiempoMs, estado: 'pendiente', mensaje: '' });
-  $('meta-ultima-captura').textContent = `Capturado: No. ${texto} · ${fmtCrono(tiempoMs)}`;
-  guardarCola(); renderCola(); procesarCola();
+  if (e.key === 'Enter') { e.preventDefault(); capturarLlegada(); }
 });
+$('btn-ingresar-meta').addEventListener('click', capturarLlegada); // para teclados sin ENTER (iPhone)
 
 /* Mantiene el cursor siempre en el cuadro de captura */
 $('meta-dorsal').addEventListener('blur', () => {
@@ -1473,6 +1511,7 @@ const posMirror = { inicioMs: null, finMs: null, timerCrono: null, timerLista: n
 /** Entrada al módulo: carga la tabla y refresca cada 3 s. */
 function abrirPosiciones() {
   detenerPosiciones();
+  posMirror.inicioMs = undefined; posMirror.finMs = undefined; // fuerza a reiniciar el cronómetro espejo
   cargarPosiciones();
   posMirror.timerLista = setInterval(() => {
     if (estado.moduloActivo === 'posiciones') cargarPosiciones(true);
@@ -1485,9 +1524,9 @@ function detenerPosiciones() {
 
 /** Dibuja el cronómetro espejo con la hora de salida que guarda el servidor. */
 function dibujarCronoPos() {
-  if (!posMirror.inicioMs) { $('pos-crono').textContent = '00:00:00.000'; return; }
-  const fin = posMirror.finMs || Date.now();
-  $('pos-crono').textContent = fmtCrono(fin - posMirror.inicioMs);
+  const t = !posMirror.inicioMs ? '00:00:00.000' : fmtCrono((posMirror.finMs || Date.now()) - posMirror.inicioMs);
+  $('pos-crono').textContent = t;
+  if ($('cat-crono')) $('cat-crono').textContent = t;
 }
 function arrancarCronoPos() {
   clearInterval(posMirror.timerCrono);
@@ -1548,6 +1587,7 @@ function iconoHtml(valor) {
 /** Entrada al módulo: carga las seis tarjetas y refresca cada 3 s. */
 function abrirPosicionesCat() {
   detenerPosiciones();
+  posMirror.inicioMs = undefined; posMirror.finMs = undefined; // fuerza a reiniciar el cronómetro espejo
   cargarPosicionesCat();
   posMirror.timerCat = setInterval(() => {
     if (estado.moduloActivo === 'posicionesCat') cargarPosicionesCat(true);
@@ -1560,26 +1600,36 @@ async function cargarPosicionesCat(silencioso = false) {
     const r = await api('getPosicionesCategoria');
     if (!r.ok) { if (!silencioso) toast(r.mensaje, 'error'); return; }
 
+    const cambio = posMirror.inicioMs !== r.inicioMs || posMirror.finMs !== r.finMs;
+    posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs;
+    if (cambio) arrancarCronoPos();
+
     $('cat-estado').textContent = !r.iniciada ? 'Esperando la salida…'
       : r.finMs ? 'Carrera detenida' : 'Carrera en curso';
 
+    const th = 'px-2 py-2 text-left text-[11px] font-semibold sm:text-xs';
     $('cat-grid').innerHTML = r.grupos.map((g) => `
       <div class="tarjeta !p-0 overflow-hidden">
         <div class="flex items-center justify-between gap-2 bg-navy px-4 py-3 text-white">
-          <h3 class="font-bold">${esc(g.titulo)}</h3>
-          <span class="cifras text-sm font-semibold">${g.lista.length} en meta</span>
+          <h3 class="text-sm font-bold sm:text-base">${esc(g.titulo)}</h3>
+          <span class="cifras whitespace-nowrap text-xs font-semibold sm:text-sm">${g.lista.length} en meta</span>
         </div>
         ${g.lista.length
-          ? `<div class="max-h-96 overflow-auto">
-              <table class="w-full min-w-[380px]">
-                <thead class="sticky top-0"><tr><th class="th">Pos.</th><th class="th">No.</th><th class="th">Nombre</th><th class="th">Tiempo</th></tr></thead>
+          ? `<div class="max-h-96 overflow-y-auto">
+              <table class="w-full table-fixed">
+                <colgroup>
+                  <col style="width:12%"><col style="width:18%"><col style="width:36%"><col style="width:34%">
+                </colgroup>
+                <thead class="sticky top-0 bg-navy text-white">
+                  <tr><th class="${th}">Pos.</th><th class="${th}">No.</th><th class="${th}">Nombre</th><th class="${th}">Tiempo</th></tr>
+                </thead>
                 <tbody class="divide-y divide-slate-100">
                   ${g.lista.map((p) => `
                     <tr class="hover:bg-slate-50">
-                      <td class="td cifras font-extrabold">${esc(p.posicion)}</td>
-                      <td class="td cifras">${esc(p.dorsal)}</td>
-                      <td class="td">${esc(p.nombre)}</td>
-                      <td class="td cifras font-semibold">${esc(p.tiempo)}</td>
+                      <td class="px-2 py-2 text-xs font-extrabold sm:text-sm cifras">${esc(p.posicion)}</td>
+                      <td class="px-2 py-2 text-xs sm:text-sm cifras">${esc(p.dorsal)}</td>
+                      <td class="px-2 py-2 text-xs sm:text-sm break-words">${esc(p.nombre)}</td>
+                      <td class="px-2 py-2 text-[11px] font-semibold sm:text-sm cifras whitespace-nowrap">${esc(p.tiempo)}</td>
                     </tr>`).join('')}
                 </tbody>
               </table>
@@ -1590,6 +1640,186 @@ async function cargarPosicionesCat(silencioso = false) {
     if (!silencioso) toast(err.message, 'error');
   }
 }
+
+/* ============================== UTILIDADES NUEVAS ============================== */
+/** ¿El usuario es admin o umgpb? (roles que pueden iniciar la carrera) */
+function esAdmin() {
+  return estado.roles.includes('admin') || estado.roles.includes('umgpb');
+}
+
+/* ============================== COSTO AUTOMÁTICO ============================== */
+/** Facultad LIBRE -> Q120.00; cualquier otra facultad -> Q100.00 */
+function aplicarCostoPorFacultad(facultad) {
+  if (!facultad) return;
+  $('reg-costo').value = norm(facultad) === 'libre' ? '120.00' : '100.00';
+}
+$('reg-facultad-select').addEventListener('change', (e) => aplicarCostoPorFacultad(e.target.value));
+
+/* ============================== TALLA EN MAYÚSCULAS ============================== */
+['reg-talla', 'ed-talla'].forEach((id) => {
+  $(id).addEventListener('blur', () => { $(id).value = $(id).value.trim().toUpperCase(); });
+});
+
+/* ============================== CAPTURA DE LLEGADAS ============================== */
+/** Registra el número escrito como llegada. Lo usan la tecla ENTER y el botón INGRESAR. */
+function capturarLlegada() {
+  const llegadaMs = Date.now();                      // hora exacta de la captura
+  const input = $('meta-dorsal');
+  const texto = input.value.trim();
+  if (!texto) return;
+  if (!/^\d{1,6}$/.test(texto)) { toast('Escribe solo el número del corredor.', 'error'); beep(); input.select(); return; }
+  if (!meta.inicioMs) { toast('La carrera aún no ha iniciado.', 'error'); return; }
+
+  input.value = '';                                  // listo para el siguiente corredor
+  const tiempoMs = llegadaMs - meta.inicioMs;
+  meta.cola.push({ id: `${llegadaMs}-${texto}`, dorsal: texto, llegadaMs, tiempoMs, estado: 'pendiente', mensaje: '' });
+  $('meta-ultima-captura').textContent = `Capturado: No. ${texto} · ${fmtCrono(tiempoMs)}`;
+  guardarCola(); renderCola(); procesarCola();
+  input.focus();
+}
+
+/* ============================== CEREMONIA DE PREMIACIÓN ============================== */
+const CEREMONIA_CATEGORIAS = [
+  { titulo: 'Catedrático Rama Femenina',  etiqueta: 'Catedrático - Femenina' },
+  { titulo: 'Catedrático Rama Masculina', etiqueta: 'Catedrático - Masculina' },
+  { titulo: 'Estudiante Rama Femenina',   etiqueta: 'Estudiante - Femenina' },
+  { titulo: 'Estudiante Rama Masculina',  etiqueta: 'Estudiante - Masculina' },
+  { titulo: 'Libre Rama Femenina',        etiqueta: 'Libre - Femenina' },
+  { titulo: 'Libre Rama Masculina',       etiqueta: 'Libre - Masculina' }
+];
+/** Texto de la edición que aparece en el mensaje del ganador. */
+const CEREMONIA_EDICION = 'IV edición';
+
+/** Datos de prueba por si falla la conexión con la hoja. */
+function mockGrupos() {
+  const tiempos = ['00:24:10.120', '00:25:02.450', '00:26:44.900'];
+  return CEREMONIA_CATEGORIAS.map((c, gi) => {
+    const partes = c.titulo.split(' Rama ');
+    return {
+      titulo: c.titulo,
+      lista: [1, 2, 3].map((p) => ({
+        posicion: p,
+        dorsal: String(gi * 10 + p).padStart(3, '0'),
+        nombre: `Participante de prueba ${gi * 3 + p}`,
+        tiempo: tiempos[p - 1],
+        categoria: partes[0],
+        rama: partes[1]
+      }))
+    };
+  });
+}
+
+/** Trazos de laurel (dos ramas curvas con hojas) en un SVG, del color indicado. */
+function laurelSVG(color) {
+  let s = '';
+  for (let i = 0; i < 7; i++) {
+    const a = (120 + i * 12) * Math.PI / 180;
+    const x = 50 + 36 * Math.cos(a), y = 50 + 36 * Math.sin(a);
+    const grados = a * 180 / Math.PI + 90;
+    s += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="4.6" ry="2.2" fill="${color}" transform="rotate(${grados.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
+    const xr = 100 - x;
+    s += `<ellipse cx="${xr.toFixed(1)}" cy="${y.toFixed(1)}" rx="4.6" ry="2.2" fill="${color}" transform="rotate(${(180 - grados).toFixed(1)} ${xr.toFixed(1)} ${y.toFixed(1)})"/>`;
+  }
+  return `<svg viewBox="0 0 100 100" class="absolute inset-0 h-full w-full" aria-hidden="true">${s}</svg>`;
+}
+
+/** Estado del podio: datos, categoría y lugares ya revelados. */
+const cer = { grupos: [], fuente: '', revelados: {}, activo: null };
+
+/** Configuración visual de cada lugar. */
+const LUGARES = {
+  1: { color: '#D4AF37', alto: 250, etiqueta: '1er Lugar', medalla: 'Medalla de Oro', frase: 'primer lugar' },
+  2: { color: '#C0C0C0', alto: 185, etiqueta: '2do Lugar', medalla: 'Medalla de Plata', frase: 'segundo lugar' },
+  3: { color: '#CD7F32', alto: 135, etiqueta: '3er Lugar', medalla: 'Medalla de Bronce', frase: 'tercer lugar' }
+};
+
+/** Entrada al módulo: carga los datos (Google Sheets o prueba) y dibuja el podio oculto. */
+async function abrirCeremonia() {
+  cer.revelados = {};
+  const sel = $('cer-categoria');
+  if (!sel.options.length) {
+    sel.innerHTML = CEREMONIA_CATEGORIAS.map((c) => `<option value="${esc(c.titulo)}">${esc(c.etiqueta)}</option>`).join('');
+  }
+  $('cer-fuente').textContent = 'Cargando datos…';
+  try {
+    const r = await api('getPosicionesCategoria');     // datos reales desde Google Sheets (a través del backend)
+    if (!r.ok) throw new Error(r.mensaje);
+    cer.grupos = r.grupos;
+    cer.fuente = 'Datos en vivo de Google Sheets';
+    ocultarAlerta('cer-aviso');
+  } catch (err) {
+    cer.grupos = mockGrupos();
+    cer.fuente = 'Datos de prueba';
+    alerta('cer-aviso', 'No se pudo leer la hoja (' + err.message + '). Se muestran datos de prueba.', 'aviso');
+  }
+  $('cer-fuente').textContent = cer.fuente;
+  renderPodio();
+}
+
+/** Tarjeta que queda fija sobre el peldaño después de revelar al ganador. */
+function tarjetaPodio(c, p) {
+  return `
+    <div class="mb-2 rounded-xl bg-white p-2 text-center text-black shadow-md ring-1 ring-slate-200">
+      <p class="text-[10px] font-black uppercase text-umgRed sm:text-xs">${p}º lugar</p>
+      <p class="break-words text-xs font-bold leading-tight sm:text-sm">${esc(c.nombre)}</p>
+      <p class="cifras whitespace-nowrap text-[11px] font-bold text-red-600 sm:text-sm">${esc(c.tiempo)}</p>
+      <p class="break-words text-[10px] text-slate-700 sm:text-xs">${esc(c.categoria)} · ${esc(c.rama)}</p>
+    </div>`;
+}
+
+/** Dibuja los tres peldaños: 2 a la izquierda, 1 al centro y 3 a la derecha. */
+function renderPodio() {
+  const titulo = $('cer-categoria').value;
+  const grupo = cer.grupos.find((g) => g.titulo === titulo) || { lista: [] };
+  $('cer-podio').innerHTML = [2, 1, 3].map((p) => {
+    const c = grupo.lista.find((x) => x.posicion === p);
+    const clave = titulo + '-' + p;
+    const revelado = !!(c && cer.revelados[clave]);
+    const info = LUGARES[p];
+    const estadoTxt = !c ? 'Sin registro' : revelado ? 'Revelado' : 'Toca para revelar';
+    return `
+      <div class="flex min-w-0 flex-col justify-end">
+        ${revelado ? tarjetaPodio(c, p) : ''}
+        <button type="button" data-lugar="${p}"
+          class="relative w-full rounded-t-xl border-b-4 border-red-600 px-1 pb-3 pt-2 text-white shadow-lg transition hover:brightness-110 focus:outline-none focus:ring-4 focus:ring-white/40"
+          style="height:${info.alto}px;background:linear-gradient(180deg,#16335f,#0A192F)">
+          <div class="relative mx-auto h-16 w-16 sm:h-24 sm:w-24">
+            ${laurelSVG(info.color)}
+            <span class="absolute inset-0 flex items-center justify-center text-2xl font-black sm:text-4xl" style="color:${info.color}">${p}</span>
+          </div>
+          <span class="mt-1 block text-[10px] font-bold uppercase tracking-wide text-white/80 sm:text-sm">${estadoTxt}</span>
+        </button>
+      </div>`;
+  }).join('');
+}
+
+/** Clic en un peldaño: abre la ventana del ganador (si hay corredor en ese lugar). */
+$('cer-podio').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-lugar]');
+  if (!b) return;
+  const p = Number(b.dataset.lugar);
+  const titulo = $('cer-categoria').value;
+  const grupo = cer.grupos.find((g) => g.titulo === titulo);
+  const c = grupo && grupo.lista.find((x) => x.posicion === p);
+  if (!c) { toast('Aún no hay corredor registrado en este lugar.', 'info'); return; }
+  abrirGanador(titulo, p, c);
+});
+
+/** Llena y muestra la ventana emergente del ganador. */
+function abrirGanador(titulo, p, c) {
+  const info = LUGARES[p];
+  cer.activo = titulo + '-' + p;
+  cer.revelados[cer.activo] = true;                  // queda fijado al cerrar la ventana
+  $('gan-lugar').textContent = `${info.etiqueta} - ${info.medalla}`;
+  $('gan-nombre').textContent = c.nombre;
+  $('gan-cat').textContent = `${c.categoria} - ${c.rama}`;
+  $('gan-tiempo').textContent = c.tiempo;
+  $('gan-mensaje').textContent = `¡Felicitaciones por la excelente participación y llevarte el ${info.frase} de la ${CEREMONIA_EDICION} de la carrera 5K UMG 2026!`;
+  abrirModal('modal-ganador');
+}
+
+/** Cambiar de categoría reinicia el podio en estado oculto. */
+$('cer-categoria').addEventListener('change', () => { cer.revelados = {}; renderPodio(); });
 
 /* ------------------------------- ARRANQUE ------------------------------- */
 window.addEventListener('online', () => { if (estado.token) { toast('Conexión recuperada.', 'ok'); cicloMeta(); } });
