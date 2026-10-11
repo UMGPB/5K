@@ -253,17 +253,26 @@
           </div>
           <div class="tarjeta">
             <div class="flex items-center justify-between gap-2">
-              <h2 class="text-lg font-bold">Tabla de posiciones</h2>
+              <h2 class="text-lg font-bold">Tabla de posiciones generales</h2>
               <p class="text-sm text-slate-700">Llegadas: <span id="pos-total" class="cifras font-bold text-black">0</span></p>
             </div>
             <div class="mt-3 overflow-x-auto rounded-lg ring-1 ring-slate-200">
-              <table class="w-full min-w-[460px]">
-                <thead><tr><th class="th">Posición</th><th class="th">No. corredor</th><th class="th">Nombre</th><th class="th">Tiempo</th></tr></thead>
+              <table class="w-full min-w-[720px]">
+                <thead><tr><th class="th">Posición</th><th class="th">No. corredor</th><th class="th">Nombre</th><th class="th">Tiempo</th><th class="th">Categoría</th><th class="th">Rama</th></tr></thead>
                 <tbody id="pos-body" class="divide-y divide-slate-100"></tbody>
               </table>
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- MÓDULO: TABLA DE POSICIONES POR CATEGORÍA Y RAMA (dashboard) -->
+      <section id="mod-posicionesCat" class="modulo hidden">
+        <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <h2 class="text-xl font-bold">Tabla de posiciones</h2>
+          <p id="cat-estado" class="text-sm font-semibold text-slate-700"></p>
+        </div>
+        <div id="cat-grid" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3"></div>
       </section>
 
       <!-- MÓDULO 5: CONSULTAS, REPORTES Y RESUMEN -->
@@ -390,7 +399,7 @@
 /* ------------------------------ CONFIGURACIÓN ------------------------------ */
 const CONFIG = {
   // *** PEGA AQUÍ la URL de tu implementación de Apps Script (termina en /exec) ***
-  API_URL: 'https://script.google.com/macros/s/AKfycbwwwl-KITEzHYFfKF4f4_IBMZ8Ft-RyHyu9VwEcDH3xKNDlKuoa3k52yLsf463GSk0u/exec',
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
   TIMEOUT_MS: 30000,          // tiempo máximo de espera por petición
   CICLO_META_MS: 5000,        // cada cuánto se reintenta enviar lo pendiente en meta
   REFRESCO_META_MS: 15000,    // cada cuánto se actualiza la tabla de últimos 5
@@ -402,7 +411,8 @@ const CONFIG = {
     kit:        '✅',
     reportes:   '📋',
     meta:       '🏁',
-    posiciones: '🏆'
+    posiciones: '🏆',
+    posicionesCat: '🥇'
   }
 };
 
@@ -413,7 +423,8 @@ const MODULOS = {
   modificar: { etiqueta: 'Buscar y modificar',    seccion: 'mod-modificar' },
   meta:      { etiqueta: 'Control de meta',       seccion: 'mod-meta' },
   reportes:  { etiqueta: 'Consultas y reportes',  seccion: 'mod-reportes' },
-  posiciones: { etiqueta: 'Tabla de posiciones', seccion: 'mod-posiciones' }
+  posiciones: { etiqueta: 'Tabla de posiciones generales', seccion: 'mod-posiciones' },
+  posicionesCat: { etiqueta: 'Tabla de posiciones por categoría', seccion: 'mod-posicionesCat' }
 };
 
 /** Estado global de la aplicación (en memoria). */
@@ -700,7 +711,8 @@ function renderMenu() {
     kit:        { etiqueta: 'Entrega de kits',      desc: 'Buscar corredores y registrar la entrega del kit.' },
     reportes:   { etiqueta: 'Consultas y reportes', desc: 'Listados, exportación a PDF o Excel y resumen de la carrera.' },
     meta:       { etiqueta: 'Control de meta',      desc: 'Iniciar, detener el cronómetro y registrar las llegadas.' },
-    posiciones: { etiqueta: 'Tabla de posiciones',  desc: 'Cronómetro en vivo y posiciones de los corredores.' }
+    posiciones: { etiqueta: 'Tabla de posiciones generales', desc: 'Cronómetro en vivo y posiciones de todos los corredores.' },
+    posicionesCat: { etiqueta: 'Tabla de posiciones por categoría', desc: 'Posiciones por categoría y rama.' }
   };
   $('menu-botones').innerHTML = Object.keys(info).map((m) => {
     const habilitado = estado.modulos.includes(m);
@@ -732,6 +744,7 @@ function mostrarModulo(id) {
   if (id === 'meta') abrirMeta();
   if (id === 'reportes') { cargarRegistros(); cargarResumen(); }
   if (id === 'posiciones') abrirPosiciones();
+  if (id === 'posicionesCat') abrirPosicionesCat();
 }
 
 /** Mensaje inicial de las listas de búsqueda. */
@@ -1466,8 +1479,8 @@ function abrirPosiciones() {
   }, 3000);
 }
 function detenerPosiciones() {
-  clearInterval(posMirror.timerCrono); clearInterval(posMirror.timerLista);
-  posMirror.timerCrono = null; posMirror.timerLista = null;
+  clearInterval(posMirror.timerCrono); clearInterval(posMirror.timerLista); clearInterval(posMirror.timerCat);
+  posMirror.timerCrono = null; posMirror.timerLista = null; posMirror.timerCat = null;
 }
 
 /** Dibuja el cronómetro espejo con la hora de salida que guarda el servidor. */
@@ -1502,8 +1515,10 @@ async function cargarPosiciones(silencioso = false) {
           <td class="td cifras">${esc(p.dorsal)}</td>
           <td class="td">${esc(p.nombre)}</td>
           <td class="td cifras font-semibold">${esc(p.tiempo)}</td>
+          <td class="td">${esc(p.categoria)}</td>
+          <td class="td">${esc(p.rama)}</td>
         </tr>`).join('')
-      : '<tr><td colspan="4" class="td py-6 text-center text-slate-700">Aún no hay llegadas registradas.</td></tr>';
+      : '<tr><td colspan="6" class="td py-6 text-center text-slate-700">Aún no hay llegadas registradas.</td></tr>';
   } catch (err) {
     if (!silencioso) toast(err.message, 'error');
   }
@@ -1527,6 +1542,53 @@ function iconoHtml(valor) {
     return `<img src="${esc(valor)}" alt="" class="mb-2 block h-12 w-12 object-contain" onerror="this.remove()">`;
   }
   return `<span class="mb-2 block text-4xl leading-none" aria-hidden="true">${esc(valor)}</span>`;
+}
+
+/* ============================ TABLA DE POSICIONES POR CATEGORÍA ============================ */
+/** Entrada al módulo: carga las seis tarjetas y refresca cada 3 s. */
+function abrirPosicionesCat() {
+  detenerPosiciones();
+  cargarPosicionesCat();
+  posMirror.timerCat = setInterval(() => {
+    if (estado.moduloActivo === 'posicionesCat') cargarPosicionesCat(true);
+  }, 3000);
+}
+
+/** Pide al servidor los seis grupos (categoría × rama) y los dibuja como tarjetas. */
+async function cargarPosicionesCat(silencioso = false) {
+  try {
+    const r = await api('getPosicionesCategoria');
+    if (!r.ok) { if (!silencioso) toast(r.mensaje, 'error'); return; }
+
+    $('cat-estado').textContent = !r.iniciada ? 'Esperando la salida…'
+      : r.finMs ? 'Carrera detenida' : 'Carrera en curso';
+
+    $('cat-grid').innerHTML = r.grupos.map((g) => `
+      <div class="tarjeta !p-0 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 bg-navy px-4 py-3 text-white">
+          <h3 class="font-bold">${esc(g.titulo)}</h3>
+          <span class="cifras text-sm font-semibold">${g.lista.length} en meta</span>
+        </div>
+        ${g.lista.length
+          ? `<div class="max-h-96 overflow-auto">
+              <table class="w-full min-w-[380px]">
+                <thead class="sticky top-0"><tr><th class="th">Pos.</th><th class="th">No.</th><th class="th">Nombre</th><th class="th">Tiempo</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${g.lista.map((p) => `
+                    <tr class="hover:bg-slate-50">
+                      <td class="td cifras font-extrabold">${esc(p.posicion)}</td>
+                      <td class="td cifras">${esc(p.dorsal)}</td>
+                      <td class="td">${esc(p.nombre)}</td>
+                      <td class="td cifras font-semibold">${esc(p.tiempo)}</td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
+          : '<p class="px-4 py-8 text-center text-sm text-slate-700">Sin llegadas en esta categoría.</p>'}
+      </div>`).join('');
+  } catch (err) {
+    if (!silencioso) toast(err.message, 'error');
+  }
 }
 
 /* ------------------------------- ARRANQUE ------------------------------- */
