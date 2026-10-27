@@ -72,7 +72,7 @@
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
       <div class="flex items-center gap-3">
         <span class="rounded-xl bg-white p-1">
-          <img src="https://i.ibb.co/gZzdHfR0/55-a-os-UMG-pb-sticker.png" style="background:transparent;" alt="Logo UMG Puerto Barrios" class="h-12 w-auto">
+          <img src="https://i.ibb.co/gZzdHfR0/55-a-os-UMG-pb-sticker.png" alt="Logo UMG Puerto Barrios" class="h-12 w-auto">
         </span>
         <div>
           <h1 class="text-lg font-bold leading-tight sm:text-xl">Carrera 5K UMG</h1>
@@ -114,6 +114,9 @@
             <label for="login-password" class="etiqueta">Contraseña</label>
             <input id="login-password" type="password" class="campo" autocomplete="current-password" required>
           </div>
+          <label class="flex items-center gap-2 text-sm font-semibold">
+            <input id="chk-ver-login" type="checkbox" class="h-4 w-4 accent-[#0B2447]"> Mostrar contraseña
+          </label>
           <div id="login-alerta" class="hidden"></div>
           <button id="btn-login" type="submit" class="btn btn-navy w-full">Ingresar</button>
         </form>
@@ -196,7 +199,7 @@
       <!-- MÓDULO 2: ENTREGA DE KITS -->
       <section id="mod-kit" class="modulo hidden">
         <div class="tarjeta mx-auto max-w-3xl">
-          <h2 class="text-xl font-bold">Entrega de kits</h2>
+          <h2 class="text-xl font-bold">Check-in y entrega de kits</h2>
           <label for="kit-buscar" class="etiqueta mt-4">Buscar por nombre completo o No. Corredor</label>
           <input id="kit-buscar" type="search" class="campo" placeholder="Ej. 125 o María López" autocomplete="off">
           <div id="kit-resultados" class="mt-4 space-y-3"></div>
@@ -231,7 +234,7 @@
 
           <!-- Captura manual -->
           <div id="meta-captura" class="tarjeta hidden">
-            <label for="meta-dorsal" class="etiqueta text-base">Número del corredor que cruza la meta (presiona la tecla ENTER o clic en INGRESAR)</label>
+            <label for="meta-dorsal" class="etiqueta text-base">Número del corredor que cruza la meta (Presiona la tecla ENTER o clic en INGRESAR)</label>
             <input id="meta-dorsal" type="text" inputmode="numeric" autocomplete="off" class="campo cifras !py-4 text-center text-3xl font-bold">
             <button id="btn-ingresar-meta" type="button" class="btn btn-navy mt-3 w-full !py-3 text-lg">INGRESAR</button>
             <p id="meta-ultima-captura" class="cifras mt-2 min-h-[1.5rem] text-center text-sm font-semibold text-navy"></p>
@@ -257,6 +260,10 @@
 
       <!-- MÓDULO: TABLA DE POSICIONES (espejo del cronómetro de control de meta) -->
       <section id="mod-posiciones" class="modulo hidden">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <img src="https://i.ibb.co/TMbzPJvp/LOGO-UMG.png" alt="Logo UMG" class="h-14 w-auto object-contain sm:h-20">
+          <img src="https://i.ibb.co/ZRZm9S4J/5k.png" alt="Logo 5K" class="h-14 w-auto object-contain sm:h-20">
+        </div>
         <div class="mb-4 flex flex-wrap justify-end gap-2">
           <button id="btn-pos-pdf" type="button" class="btn btn-rojo">Descargar PDF</button>
           <button id="btn-pos-xlsx" type="button" class="btn btn-verde">Descargar Excel (XLSX)</button>
@@ -273,8 +280,8 @@
               <p class="text-sm text-slate-700">Llegadas: <span id="pos-total" class="cifras font-bold text-black">0</span></p>
             </div>
             <div class="mt-3 overflow-x-auto rounded-lg ring-1 ring-slate-200">
-              <table class="w-full min-w-[720px]">
-                <thead><tr><th class="th">Posición</th><th class="th">No. corredor</th><th class="th">Nombre</th><th class="th">Tiempo</th><th class="th">Categoría</th><th class="th">Rama</th></tr></thead>
+              <table class="w-full table-fixed text-[11px] sm:text-sm">
+                <thead><tr><th class="th whitespace-normal">Pos.</th><th class="th whitespace-normal">No.</th><th class="th whitespace-normal">Nombre</th><th class="th whitespace-normal">Tiempo</th><th class="th whitespace-normal">Categoría</th><th class="th whitespace-normal">Rama</th></tr></thead>
                 <tbody id="pos-body" class="divide-y divide-slate-100"></tbody>
               </table>
             </div>
@@ -287,6 +294,10 @@
         <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 class="text-xl font-bold">Tabla de posiciones</h2>
           <p id="cat-estado" class="text-sm font-semibold text-slate-700"></p>
+        </div>
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <img src="https://i.ibb.co/TMbzPJvp/LOGO-UMG.png" alt="Logo UMG" class="h-14 w-auto object-contain sm:h-20">
+          <img src="https://i.ibb.co/ZRZm9S4J/5k.png" alt="Logo 5K" class="h-14 w-auto object-contain sm:h-20">
         </div>
         <div class="mb-4 flex flex-wrap justify-end gap-2">
           <button id="btn-cat-pdf" type="button" class="btn btn-rojo">Descargar PDF</button>
@@ -323,26 +334,30 @@
         </div>
 
         <!-- Ventana emergente del ganador -->
-        <div id="modal-ganador" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8" role="dialog" aria-modal="true" aria-labelledby="gan-lugar">
-          <div id="gan-panel" class="modal-entrada relative max-h-[92vh] w-11/12 max-w-5xl overflow-y-auto rounded-[32px] border-4 bg-white p-6 text-center text-black shadow-2xl sm:p-10" style="border-color:#FBBF24">
-            <button type="button" data-cerrar-modal="modal-ganador" class="absolute right-4 top-4 rounded-full p-2 text-3xl leading-none text-gray-400 hover:bg-slate-100 hover:text-gray-600" aria-label="Cerrar">&times;</button>
-            <div id="gan-icono" class="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 sm:h-36 sm:w-36">
-              <div id="gan-trofeo" class="h-16 w-16 sm:h-20 sm:w-20"></div>
+        <div id="modal-ganador" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="gan-lugar">
+          <div id="gan-panel" class="modal-entrada relative flex max-h-[94dvh] w-[min(94vw,68rem)] flex-col overflow-y-auto rounded-[32px] border-4 bg-white p-4 text-center text-black shadow-2xl sm:p-8" style="border-color:#FBBF24">
+            <button type="button" data-cerrar-modal="modal-ganador" class="absolute right-3 top-3 rounded-full p-2 text-3xl leading-none text-gray-400 hover:bg-slate-100 hover:text-gray-600" aria-label="Cerrar">&times;</button>
+            <div class="flex items-center justify-between gap-4">
+              <img src="https://i.ibb.co/TMbzPJvp/LOGO-UMG.png" alt="Logo UMG" class="h-[clamp(3rem,9vw,6rem)] w-auto object-contain">
+              <img src="https://i.ibb.co/ZRZm9S4J/5k.png" alt="Logo 5K" class="h-[clamp(3rem,9vw,6rem)] w-auto object-contain">
             </div>
-            <p id="gan-lugar" class="mx-auto mt-5 inline-block rounded-full bg-red-600 px-6 py-2 text-xl font-black uppercase tracking-wide text-white sm:text-2xl"></p>
-            <p id="gan-nombre" class="mt-4 break-words text-4xl font-black tracking-tight text-[#0F172A] sm:text-6xl"></p>
-            <div class="mx-auto mt-6 max-w-3xl space-y-3 rounded-2xl border border-slate-200 bg-[#F8FAFC] p-5">
+            <div id="gan-icono" class="mx-auto mt-3 flex aspect-square w-[clamp(5rem,14vw,9rem)] items-center justify-center rounded-full border-4">
+              <div id="gan-trofeo" class="h-[45%] w-[45%]"></div>
+            </div>
+            <p id="gan-lugar" class="mx-auto mt-4 inline-block rounded-full bg-red-600 px-6 py-2 font-black uppercase tracking-wide text-white text-[clamp(1rem,2.6vw,1.75rem)]"></p>
+            <p id="gan-nombre" class="mt-3 break-words font-black leading-tight tracking-tight text-[#0F172A] text-[clamp(1.75rem,6vw,4.5rem)]"></p>
+            <div class="mx-auto mt-5 w-full max-w-3xl space-y-3 rounded-2xl border border-slate-200 bg-[#F8FAFC] p-4 sm:p-5">
               <div class="flex flex-col items-center justify-between gap-1 sm:flex-row sm:gap-4">
-                <span class="text-base font-semibold uppercase tracking-wider text-slate-500 sm:text-3xl">Categoría:</span>
-                <span id="gan-cat" class="text-xl font-bold text-slate-800 sm:text-3xl"></span>
+                <span class="font-semibold uppercase tracking-wider text-slate-500 text-[clamp(0.9rem,2.4vw,1.875rem)]">Categoría:</span>
+                <span id="gan-cat" class="font-bold text-slate-800 text-[clamp(1rem,2.6vw,1.875rem)]"></span>
               </div>
               <div class="flex flex-col items-center justify-between gap-1 sm:flex-row sm:gap-4">
-                <span class="text-base font-semibold uppercase tracking-wider text-slate-500 sm:text-3xl">Tiempo récord:</span>
-                <span id="gan-tiempo" class="cifras text-4xl font-black text-red-600 sm:text-6xl"></span>
+                <span class="font-semibold uppercase tracking-wider text-slate-500 text-[clamp(0.9rem,2.4vw,1.875rem)]">Tiempo récord:</span>
+                <span id="gan-tiempo" class="cifras font-black text-red-600 text-[clamp(2rem,6vw,4.5rem)]"></span>
               </div>
             </div>
-            <p id="gan-mensaje" class="mx-auto mt-6 max-w-3xl text-lg font-medium italic text-slate-600 sm:text-2xl"></p>
-            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <p id="gan-mensaje" class="mx-auto mt-5 max-w-3xl font-medium italic text-slate-600 text-[clamp(1rem,2.2vw,1.5rem)]"></p>
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <button id="btn-confeti" type="button" class="rounded-xl bg-[#FBBF24] px-6 py-3 text-sm font-bold uppercase tracking-wider text-slate-900 shadow hover:brightness-105 sm:text-base">Lanzar confeti</button>
               <button type="button" data-cerrar-modal="modal-ganador" class="rounded-xl bg-[#0F172A] px-6 py-3 text-sm font-bold uppercase tracking-wider text-white shadow hover:brightness-110 sm:text-base">Cerrar</button>
             </div>
@@ -404,6 +419,9 @@
         <div><label for="cl-actual" class="etiqueta">Contraseña actual</label><input id="cl-actual" type="password" class="campo" autocomplete="current-password"></div>
         <div><label for="cl-nueva" class="etiqueta">Nueva contraseña</label><input id="cl-nueva" type="password" class="campo" autocomplete="new-password"></div>
         <div><label for="cl-confirmar" class="etiqueta">Confirmar nueva contraseña</label><input id="cl-confirmar" type="password" class="campo" autocomplete="new-password"></div>
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <input id="chk-ver-cambio" type="checkbox" class="h-4 w-4 accent-[#0B2447]"> Mostrar contraseñas
+        </label>
         <div id="cl-alerta" class="hidden"></div>
         <div class="flex justify-end gap-2 pt-1">
           <button type="button" class="btn btn-claro" data-cerrar-modal="modal-clave">Cancelar</button>
@@ -474,11 +492,13 @@
 /* ------------------------------ CONFIGURACIÓN ------------------------------ */
 const CONFIG = {
   // *** PEGA AQUÍ la URL de tu implementación de Apps Script (termina en /exec) ***
-  API_URL: 'https://script.google.com/macros/s/AKfycbwwwl-KITEzHYFfKF4f4_IBMZ8Ft-RyHyu9VwEcDH3xKNDlKuoa3k52yLsf463GSk0u/exec',
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
   TIMEOUT_MS: 30000,          // tiempo máximo de espera por petición
   CICLO_META_MS: 5000,        // cada cuánto se reintenta enviar lo pendiente en meta
   REFRESCO_META_MS: 15000,    // cada cuánto se actualiza la tabla de últimos 5
   LOGO_URL: 'https://i.ibb.co/gZzdHfR0/55-a-os-UMG-pb-sticker.png',
+  LOGO_UMG_URL: 'https://i.ibb.co/TMbzPJvp/LOGO-UMG.png',
+  LOGO_5K_URL: 'https://i.ibb.co/ZRZm9S4J/5k.png',
   // Iconos del menú: puede ser un emoji (ej. '✅') o la ruta de una imagen (ej. 'iconos/meta.png').
   // Si la imagen no existe o el valor está vacío, la opción se muestra sin icono.
   ICONOS: {
@@ -789,7 +809,7 @@ function renderMenu() {
     kit:        { etiqueta: 'Entrega de kits',      desc: 'Buscar corredores y registrar la entrega del kit.' },
     reportes:   { etiqueta: 'Consultas y reportes', desc: 'Listados, exportación a PDF o Excel y resumen de la carrera.' },
     meta:       { etiqueta: 'Control de meta',      desc: 'Iniciar, detener el cronómetro y registrar las llegadas.' },
-    posiciones: { etiqueta: 'Tabla de posiciones generales', desc: 'Cronómetro en vivo y posiciones generales de todos los corredores.' },
+    posiciones: { etiqueta: 'Tabla de posiciones generales', desc: 'Cronómetro en vivo y posiciones de todos los corredores.' },
     posicionesCat: { etiqueta: 'Tabla de posiciones por categoría', desc: 'Posiciones por categoría y rama.' },
     ceremonia: { etiqueta: 'Ceremonia de Premiación', desc: 'Revelar el podio ganador de cada categoría.' }
   };
@@ -1228,14 +1248,20 @@ $('btn-reintentar-inicio').addEventListener('click', () => conCarga($('btn-reint
 
 /** Reinicio del cronómetro (solo administradores, solo si nadie ha llegado). */
 $('btn-reiniciar-carrera').addEventListener('click', async () => {
-  if (!confirm('¿Reiniciar el cronómetro? Solo es posible si aún no hay llegadas registradas.')) return;
-  if (!confirm('Confirma nuevamente: se borrará la hora de salida actual.')) return;
+  if (!confirm('¿Reiniciar el cronómetro? Se borrarán las columnas L a O (hora de salida, hora de llegada, tiempo y posición) de todos los corredores.')) return;
+  if (!confirm('Confirma nuevamente: esta acción no se puede deshacer.')) return;
   try {
     const r = await api('reiniciarCarrera');
     if (!r.ok) { toast(r.mensaje, 'error'); return; }
-    detenerCrono(); meta.inicioMs = null; meta.finMs = null; meta.sincronizado = false;
+    detenerCrono();
+    meta.inicioMs = null; meta.finMs = null; meta.sincronizado = false; meta.ultimos = [];
+    meta.cola = []; guardarCola(); renderCola(); renderUltimos();
+    sessionStorage.removeItem(CLAVE_INICIO_PENDIENTE);
     $('meta-listo').checked = false; $('btn-iniciar').disabled = true;
-    toast(r.mensaje, 'ok'); actualizarUIMeta();
+    $('meta-total').textContent = '0';
+    $('meta-ultima-captura').textContent = '';
+    toast(r.mensaje, 'ok');
+    actualizarUIMeta();
   } catch (err) { toast(err.message, 'error'); }
 });
 
@@ -1651,19 +1677,19 @@ async function cargarPosicionesCat(silencioso = false) {
   try {
     const r = await api('getPosicionesCategoria');
     if (!r.ok) { if (!silencioso) toast(r.mensaje, 'error'); return; }
+    exp.categorias = r.grupos;
 
     const cambio = posMirror.inicioMs !== r.inicioMs || posMirror.finMs !== r.finMs;
     posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs;
     if (cambio) arrancarCronoPos();
 
-    exp.categorias = r.grupos;
     $('cat-estado').textContent = !r.iniciada ? 'Esperando la salida…'
       : r.finMs ? 'Carrera detenida' : 'Carrera en curso';
 
     const th = 'px-2 py-2 text-left text-[11px] font-semibold sm:text-xs';
     $('cat-grid').innerHTML = r.grupos.map((g) => `
       <div class="tarjeta !p-0 overflow-hidden">
-        <div class="flex items-center justify-between gap-2 bg-navy px-4 py-3 text-white">
+        <div class="flex items-center justify-between gap-2 px-4 py-3 ${claseGrupo(g.titulo).fondo} ${claseGrupo(g.titulo).texto}">
           <h3 class="text-sm font-bold sm:text-base">${esc(g.titulo)}</h3>
           <span class="cifras whitespace-nowrap text-xs font-semibold sm:text-sm">${g.lista.length} en meta</span>
         </div>
@@ -1673,7 +1699,7 @@ async function cargarPosicionesCat(silencioso = false) {
                 <colgroup>
                   <col style="width:12%"><col style="width:18%"><col style="width:36%"><col style="width:34%">
                 </colgroup>
-                <thead class="sticky top-0 bg-navy text-white">
+                <thead class="sticky top-0 ${claseGrupo(g.titulo).fondo} ${claseGrupo(g.titulo).texto}">
                   <tr><th class="${th}">Pos.</th><th class="${th}">No.</th><th class="${th}">Nombre</th><th class="${th}">Tiempo</th></tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -1791,8 +1817,12 @@ async function abrirCeremonia() {
   cer.revelados = {};
   const sel = $('cer-categoria');
   if (!sel.options.length) {
-    sel.innerHTML = CEREMONIA_CATEGORIAS.map((c) => `<option value="${esc(c.titulo)}">${esc(c.etiqueta)}</option>`).join('');
+    sel.innerHTML = CEREMONIA_CATEGORIAS.map((c) => {
+      const col = COLOR_CATEGORIA(c.titulo);
+      return `<option value="${esc(c.titulo)}" style="background:${col.fondo};color:${col.texto}">${esc(c.etiqueta)}</option>`;
+    }).join('');
   }
+  pintarSelectCategoria();
   $('cer-fuente').textContent = 'Cargando datos…';
   try {
     const r = await api('getPosicionesCategoria');     // datos reales desde Google Sheets (a través del backend)
@@ -1893,7 +1923,7 @@ const GANADOR_ESTILO = {
   3: { borde: '#6B522F', fondo: '#E3C398', anillo: '#6B522F', trofeo: '#977547', badge: 'TERCER LUGAR', frase: 'tercer lugar' }
 };
 
-/** Llena y muestra la ventana emergente del ganador. */
+/** Llena y muestra la ventana del ganador y lanza el confeti automáticamente. */
 function abrirGanador(titulo, p, c) {
   const est = GANADOR_ESTILO[p];
   cer.activo = titulo + '-' + p;
@@ -1908,10 +1938,11 @@ function abrirGanador(titulo, p, c) {
   $('gan-tiempo').textContent = c.tiempo;
   $('gan-mensaje').textContent = `“¡Felicitaciones por la excelente participación y llevarte el ${est.frase} de la carrera 5K UMG!”`;
   abrirModal('modal-ganador');
+  lanzarConfeti();                                   // automático, sin importar el lugar
 }
 
 /** Cambiar de categoría reinicia el podio en estado oculto. */
-$('cer-categoria').addEventListener('change', () => { cer.revelados = {}; renderPodio(); });
+$('cer-categoria').addEventListener('change', () => { cer.revelados = {}; pintarSelectCategoria(); renderPodio(); });
 
 /* Duración máxima de la carrera (1 hora): el cronómetro se detiene solo al cumplirla. */
 const DURACION_CARRERA_MS = 60 * 60 * 1000;
@@ -2047,6 +2078,38 @@ function lanzarConfeti() {
   }
 }
 $('btn-confeti').addEventListener('click', lanzarConfeti);
+
+/* ============================== MOSTRAR CONTRASEÑA ============================== */
+function alternarClave(ids, mostrar) {
+  ids.forEach((id) => { $(id).type = mostrar ? 'text' : 'password'; });
+}
+$('chk-ver-login').addEventListener('change', (e) => alternarClave(['login-password'], e.target.checked));
+$('chk-ver-cambio').addEventListener('change', (e) => alternarClave(['cl-actual', 'cl-nueva', 'cl-confirmar'], e.target.checked));
+$('btn-abrir-cambio').addEventListener('click', () => {         // al abrir, las claves vuelven a ocultarse
+  $('chk-ver-cambio').checked = false;
+  alternarClave(['cl-actual', 'cl-nueva', 'cl-confirmar'], false);
+});
+
+/* ============================== COLORES POR CATEGORÍA ============================== */
+/** Azul para Estudiante, rojo para Catedrático y amarillo para Libre. */
+function claseGrupo(titulo) {
+  if (/^Estudiante/i.test(titulo)) return { fondo: 'bg-blue-700', texto: 'text-white' };
+  if (/^Catedr/i.test(titulo)) return { fondo: 'bg-red-600', texto: 'text-white' };
+  return { fondo: 'bg-yellow-400', texto: 'text-slate-900' };
+}
+function COLOR_CATEGORIA(titulo) {
+  if (/^Estudiante/i.test(titulo)) return { fondo: '#1d4ed8', texto: '#ffffff' };
+  if (/^Catedr/i.test(titulo)) return { fondo: '#dc2626', texto: '#ffffff' };
+  return { fondo: '#facc15', texto: '#0f172a' };
+}
+/** Pinta el selector de categoría con el color de la categoría elegida. */
+function pintarSelectCategoria() {
+  const sel = $('cer-categoria');
+  const col = COLOR_CATEGORIA(sel.value);
+  sel.style.background = col.fondo;
+  sel.style.color = col.texto;
+  sel.style.fontWeight = '700';
+}
 
 /* ------------------------------- ARRANQUE ------------------------------- */
 window.addEventListener('online', () => { if (estado.token) { toast('Conexión recuperada.', 'ok'); cicloMeta(); } });
