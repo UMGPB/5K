@@ -304,6 +304,7 @@
           <div class="tarjeta min-w-0 flex-1 text-center">
             <p class="text-sm font-semibold text-slate-700">Cronómetro de la carrera</p>
             <p id="cat-crono" class="cifras mt-1 whitespace-nowrap text-[clamp(1.6rem,7vw,3.75rem)] font-extrabold text-navy">00:00:00.000</p>
+            <p class="mt-2 text-sm font-semibold text-slate-700">Llegadas a meta: <span id="cat-total" class="cifras font-bold text-black">0</span></p>
           </div>
           <img src="https://i.ibb.co/ZRZm9S4J/5k.png" alt="Logo 5K" class="h-14 w-auto shrink-0 object-contain sm:h-24">
         </div>
@@ -495,7 +496,7 @@
 /* ------------------------------ CONFIGURACIÓN ------------------------------ */
 const CONFIG = {
   // *** PEGA AQUÍ la URL de tu implementación de Apps Script (termina en /exec) ***
-  API_URL: 'https://script.google.com/macros/s/AKfycbwwwl-KITEzHYFfKF4f4_IBMZ8Ft-RyHyu9VwEcDH3xKNDlKuoa3k52yLsf463GSk0u/exec',
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
   TIMEOUT_MS: 30000,          // tiempo máximo de espera por petición
   CICLO_META_MS: 5000,        // cada cuánto se reintenta enviar lo pendiente en meta
   REFRESCO_META_MS: 15000,    // cada cuánto se actualiza la tabla de últimos 5
@@ -1681,6 +1682,7 @@ async function cargarPosicionesCat(silencioso = false) {
     const r = await api('getPosicionesCategoria');
     if (!r.ok) { if (!silencioso) toast(r.mensaje, 'error'); return; }
     exp.categorias = r.grupos;
+    $('cat-total').textContent = r.grupos.reduce((a, g) => a + g.lista.length, 0);
 
     const cambio = posMirror.inicioMs !== r.inicioMs || posMirror.finMs !== r.finMs;
     posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs;
@@ -1697,7 +1699,7 @@ async function cargarPosicionesCat(silencioso = false) {
           <span class="cifras whitespace-nowrap text-xs font-semibold sm:text-sm">${g.lista.length} en meta</span>
         </div>
         ${g.lista.length
-          ? `<div class="max-h-96 overflow-y-auto">
+          ? `<div class="max-h-[15rem] overflow-y-auto">
               <table class="w-full table-fixed">
                 <colgroup>
                   <col style="width:12%"><col style="width:18%"><col style="width:36%"><col style="width:34%">
