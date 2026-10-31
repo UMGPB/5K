@@ -222,6 +222,10 @@
                 <input id="meta-listo" type="checkbox" class="h-5 w-5 accent-[#0B2447]">
                 Todo listo para dar la salida
               </label>
+              <div class="text-left">
+                <label for="meta-duracion" class="etiqueta">Duración máxima de la carrera (minutos)</label>
+                <input id="meta-duracion" type="number" min="1" max="720" step="1" value="60" inputmode="numeric" class="campo cifras">
+              </div>
               <button id="btn-iniciar" type="button" class="btn btn-verde w-full !py-5 text-2xl" disabled>¡INICIAR CARRERA!</button>
             </div>
             <button id="btn-detener" type="button" class="btn btn-rojo mt-4 hidden w-full !py-4 text-xl">DETENER CRONÓMETRO</button>
@@ -301,10 +305,16 @@
         </div>
         <div class="mb-5 flex items-center gap-2 sm:gap-6">
           <img src="https://i.ibb.co/TMbzPJvp/LOGO-UMG.png" alt="Logo UMG" class="h-14 w-auto shrink-0 object-contain sm:h-24">
-          <div class="tarjeta min-w-0 flex-1 text-center">
-            <p class="text-sm font-semibold text-slate-700">Cronómetro de la carrera</p>
-            <p id="cat-crono" class="cifras mt-1 whitespace-nowrap text-[clamp(1.6rem,7vw,3.75rem)] font-extrabold text-navy">00:00:00.000</p>
-            <p class="mt-2 text-sm font-semibold text-slate-700">Llegadas a meta: <span id="cat-total" class="cifras font-bold text-black">0</span></p>
+          <div class="min-w-0 flex-1 space-y-3">
+            <div class="rounded-2xl bg-black px-4 py-5 text-center ring-4 ring-slate-800 shadow-inner sm:py-7">
+              <p class="text-base font-black uppercase tracking-[0.35em] text-white sm:text-xl">CRONÓMETRO</p>
+              <p id="cat-crono" class="cifras mt-2 whitespace-nowrap font-mono font-bold text-red-500 text-[clamp(1.6rem,7vw,3.75rem)]" style="text-shadow:0 0 12px rgba(239,68,68,.6)">00:00:00.000</p>
+            </div>
+            <div class="tarjeta !p-4 text-center">
+              <p class="text-sm font-semibold text-slate-700">Llegadas a meta: <span id="cat-total" class="cifras font-bold text-black">0</span></p>
+              <p class="text-sm font-semibold text-slate-700">Fecha: <span id="cat-fecha" class="cifras font-bold text-black">--/--/----</span></p>
+              <p class="text-sm font-semibold text-slate-700">Hora de inicio: <span id="cat-hora-inicio" class="cifras font-bold text-black">--:--:--</span></p>
+            </div>
           </div>
           <img src="https://i.ibb.co/ZRZm9S4J/5k.png" alt="Logo 5K" class="h-14 w-auto shrink-0 object-contain sm:h-24">
         </div>
@@ -432,6 +442,19 @@
           <button id="btn-cambiar-clave" type="submit" class="btn btn-navy">Cambiar contraseña</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Exportar registros: todo o una facultad -->
+  <div id="modal-exportar" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="exp-titulo">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 text-black shadow-xl">
+      <h3 id="exp-titulo" class="text-lg font-bold">Descargar</h3>
+      <label for="exp-facultad" class="etiqueta mt-4">¿Qué deseas exportar?</label>
+      <select id="exp-facultad" class="campo"></select>
+      <div class="mt-5 flex justify-end gap-2">
+        <button type="button" class="btn btn-claro" data-cerrar-modal="modal-exportar">Cancelar</button>
+        <button id="btn-exp-confirmar" type="button" class="btn btn-navy">Descargar</button>
+      </div>
     </div>
   </div>
 
@@ -1148,6 +1171,7 @@ async function cargarEstadoMeta(silencioso = false) {
 
     const finPrevio = meta.finMs;
     meta.finMs = r.iniciada ? (r.finMs || null) : null; // hora de cierre (si ya se detuvo)
+    meta.duracionMs = r.duracionMs || meta.duracionMs;
     if (r.iniciada) {
       if (meta.inicioMs !== r.inicioMs || finPrevio !== meta.finMs) { meta.inicioMs = r.inicioMs; arrancarCrono(); }
       meta.sincronizado = true;
@@ -1199,10 +1223,10 @@ function arrancarCrono() {
   if (meta.finMs) { $('crono').textContent = fmtCrono(meta.finMs - meta.inicioMs); return; }
   const tick = () => {
     const t = Date.now() - meta.inicioMs;
-    if (t >= DURACION_CARRERA_MS) {                  // se cumplió 1 hora: se detiene automáticamente
+    if (t >= duracionActual()) {                     // se cumplió la duración: se detiene automáticamente
       detenerCrono();
-      meta.finMs = meta.inicioMs + DURACION_CARRERA_MS;
-      $('crono').textContent = fmtCrono(DURACION_CARRERA_MS);
+      meta.finMs = meta.inicioMs + duracionActual();
+      $('crono').textContent = fmtCrono(duracionActual());
       actualizarUIMeta();
       return;
     }
@@ -1218,7 +1242,10 @@ function detenerCrono() { clearInterval(meta.timerCrono); meta.timerCrono = null
 $('meta-listo').addEventListener('change', (e) => { $('btn-iniciar').disabled = !e.target.checked; });
 
 $('btn-iniciar').addEventListener('click', async () => {
-  const inicioMs = Date.now();                       // hora exacta del clic (se captura antes de cualquier otra cosa)
+  const minutos = Math.round(Number($('meta-duracion').value));
+  if (!minutos || minutos < 1 || minutos > 720) { toast('La duración debe estar entre 1 y 720 minutos.', 'error'); return; }
+  meta.duracionMs = minutos * 60000;                 // duración elegida por el administrador
+  const inicioMs = Date.now();                       // hora exacta del clic
   sessionStorage.setItem(CLAVE_INICIO_PENDIENTE, String(inicioMs));
   meta.inicioMs = inicioMs; meta.sincronizado = false;
   arrancarCrono(); actualizarUIMeta();
@@ -1229,7 +1256,7 @@ $('btn-iniciar').addEventListener('click', async () => {
 async function sincronizarInicio() {
   if (!meta.inicioMs) return;
   try {
-    const r = await api('iniciarCarrera', { inicioMs: meta.inicioMs });
+    const r = await api('iniciarCarrera', { inicioMs: meta.inicioMs, duracionMin: Math.round(duracionActual() / 60000) });
     if (r.ok) {
       meta.sincronizado = true; sessionStorage.removeItem(CLAVE_INICIO_PENDIENTE);
       toast(r.mensaje, 'ok');
@@ -1448,72 +1475,10 @@ function cargarLogoParaPdf() {
 }
 
 /** Exportar a PDF (jsPDF + autoTable) con membrete UMG y paginación. */
-$('btn-pdf').addEventListener('click', () => {
-  if (!window.jspdf || !window.jspdf.jsPDF) { toast('La librería de PDF no cargó. Revisa tu conexión.', 'error'); return; }
-  if (!estado.filtrados.length) { toast('No hay datos para exportar.', 'error'); return; }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
-  const ancho = doc.internal.pageSize.getWidth();
-  const alto = doc.internal.pageSize.getHeight();
-  const fecha = new Date().toLocaleString('es-GT');
-  const cab = ['Facultad', 'Categoría', 'Rama', 'No.', 'Nombre completo', 'Costo', 'Talla', 'Venta', 'Vendedor', 'Kit', 'Reg. kit', 'Salida', 'Llegada', 'Tiempo', 'Pos.'];
-
-  doc.autoTable({
-    head: [cab],
-    body: estado.filtrados,
-    startY: 74,
-    margin: { top: 74, left: 28, right: 28, bottom: 34 },
-    styles: { fontSize: 6, cellPadding: 2, overflow: 'linebreak', textColor: 0 },
-    headStyles: { fillColor: [11, 36, 71], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [240, 242, 247] },
-    columnStyles: { 3: { halign: 'center' }, 5: { halign: 'right' }, 14: { halign: 'center' } },
-    // Membrete que se dibuja en CADA página
-    didDrawPage: () => {
-      doc.setFillColor(11, 36, 71); doc.rect(0, 0, ancho, 58, 'F');
-      let x = 28;
-      if (estado.logo) {
-        const h = 40, w = h * estado.logo.w / estado.logo.h;
-        doc.setFillColor(255, 255, 255); doc.roundedRect(x - 3, 8, w + 6, h + 4, 4, 4, 'F');
-        doc.addImage(estado.logo.data, 'PNG', x, 10, w, h);
-        x += w + 16;
-      }
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-      doc.text('Universidad Mariano Gálvez · Puerto Barrios', x, 26);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-      doc.text('Carrera 5K · Listado de corredores', x, 42);
-      doc.setFontSize(8);
-      doc.text(`Generado: ${fecha}`, ancho - 28, 26, { align: 'right' });
-      doc.text(`Registros: ${estado.filtrados.length}`, ancho - 28, 40, { align: 'right' });
-    }
-  });
-
-  // Pie de página con paginación en todas las hojas
-  const paginas = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= paginas; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8); doc.setTextColor(0, 0, 0);
-    doc.text('© M.A. Inga. Delmy Valiente', 28, alto - 16);
-    doc.text(`Página ${i} de ${paginas}`, ancho - 28, alto - 16, { align: 'right' });
-  }
-  doc.save(`Corredores_5K_UMG_${new Date().toISOString().slice(0, 10)}.pdf`);
-});
+$('btn-pdf').addEventListener('click', () => abrirExportar('pdf'));
 
 /** Exportar a Excel (SheetJS) con datos limpios en formato tabular. */
-$('btn-xlsx').addEventListener('click', () => {
-  if (!window.XLSX) { toast('La librería de Excel no cargó. Revisa tu conexión.', 'error'); return; }
-  if (!estado.filtrados.length) { toast('No hay datos para exportar.', 'error'); return; }
-  // Costo (5) y Posición (14) se guardan como número; el No. Corredor (3) se queda como texto para conservar ceros (001)
-  const filas = estado.filtrados.map((f) => f.map((v, i) => {
-    if ([5, 14].includes(i) && String(v).trim() !== '') { const n = aNumero(v); return isNaN(n) ? v : n; }
-    return v;
-  }));
-  const hoja = XLSX.utils.aoa_to_sheet([estado.encabezados, ...filas]);
-  hoja['!cols'] = [{ wch: 22 }, { wch: 22 }, { wch: 12 }, { wch: 8 }, { wch: 32 }, { wch: 10 }, { wch: 8 }, { wch: 20 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }];
-  const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, 'Corredores');
-  XLSX.writeFile(libro, `Corredores_5K_UMG_${new Date().toISOString().slice(0, 10)}.xlsx`);
-});
+$('btn-xlsx').addEventListener('click', () => abrirExportar('xlsx'));
 
 /* ---- B) Resumen de carrera (dashboard) ---- */
 async function cargarResumen() {
@@ -1560,7 +1525,7 @@ function renderResumen(r) {
       </div>
     </div>`;
   };
-  $('res-tablas').innerHTML = tabla('Por facultad', r.porFacultad) + tabla('Por categoría', r.porCategoria) + tabla('Por rama', r.porRama);
+  $('res-tablas').innerHTML = tabla('Por facultad', r.porFacultad) + tabla('Por categoría', r.porCategoria) + tabla('Por rama', r.porRama) + tabla('Por Categoría-Rama', r.porCategoriaRama).replace('<div class="tarjeta !p-0 overflow-hidden">', '<div class="tarjeta !p-0 overflow-hidden lg:col-span-3">');
 }
 
 /* ============================== DETENER CRONÓMETRO ============================== */
@@ -1603,7 +1568,7 @@ function dibujarCronoPos() {
   let t = '00:00:00.000';
   if (posMirror.inicioMs) {
     // máximo 1 hora: si ya se cumplió, el cronómetro queda en 60:00.000
-    const fin = posMirror.finMs || Math.min(Date.now(), posMirror.inicioMs + DURACION_CARRERA_MS);
+    const fin = posMirror.finMs || Math.min(Date.now(), posMirror.inicioMs + (posMirror.duracionMs || DURACION_CARRERA_MS));
     t = fmtCrono(fin - posMirror.inicioMs);
   }
   $('pos-crono').textContent = t;
@@ -1622,7 +1587,7 @@ async function cargarPosiciones(silencioso = false) {
     if (!r.ok) { if (!silencioso) toast(r.mensaje, 'error'); return; }
 
     const cambio = posMirror.inicioMs !== r.inicioMs || posMirror.finMs !== r.finMs;
-    posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs;
+    posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs; posMirror.duracionMs = r.duracionMs;
     if (cambio) arrancarCronoPos();
 
     $('pos-estado').textContent = !r.iniciada ? 'Esperando la salida…'
@@ -1683,9 +1648,14 @@ async function cargarPosicionesCat(silencioso = false) {
     if (!r.ok) { if (!silencioso) toast(r.mensaje, 'error'); return; }
     exp.categorias = r.grupos;
     $('cat-total').textContent = r.grupos.reduce((a, g) => a + g.lista.length, 0);
+    if (r.inicioMs) {
+      const f = fechaHoraGT(r.inicioMs);
+      $('cat-fecha').textContent = f.fecha;
+      $('cat-hora-inicio').textContent = f.hora;
+    }
 
     const cambio = posMirror.inicioMs !== r.inicioMs || posMirror.finMs !== r.finMs;
-    posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs;
+    posMirror.inicioMs = r.inicioMs; posMirror.finMs = r.finMs; posMirror.duracionMs = r.duracionMs;
     if (cambio) arrancarCronoPos();
 
     $('cat-estado').textContent = !r.iniciada ? 'Esperando la salida…'
@@ -1958,10 +1928,10 @@ const DURACION_CARRERA_MS = 60 * 60 * 1000;
 const exp = { general: [], categorias: [] };
 
 /** PDF con membrete y pie de página de la UMG en todas las hojas. */
-function generarPDF(nombreArchivo, tituloDoc, bloques) {
+function generarPDF(nombreArchivo, tituloDoc, bloques, opciones = {}) {
   if (!window.jspdf || !window.jspdf.jsPDF) { toast('La librería de PDF no cargó. Revisa tu conexión.', 'error'); return; }
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+  const doc = new jsPDF({ orientation: opciones.orientation || 'portrait', unit: 'pt', format: 'letter' });
   const ancho = doc.internal.pageSize.getWidth();
   const alto = doc.internal.pageSize.getHeight();
   const fecha = new Date().toLocaleString('es-GT');
@@ -1976,7 +1946,7 @@ function generarPDF(nombreArchivo, tituloDoc, bloques) {
     doc.autoTable({
       head: [b.columnas], body: b.filas, startY: y,
       margin: { top: 84, left: 28, right: 28, bottom: 50 },
-      styles: { fontSize: 9, cellPadding: 4, textColor: 0 },
+      styles: { fontSize: opciones.fontSize || 9, cellPadding: opciones.fontSize ? 2 : 4, textColor: 0 },
       headStyles: { fillColor: [11, 36, 71], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [240, 242, 247] }
     });
@@ -2115,6 +2085,73 @@ function pintarSelectCategoria() {
   sel.style.background = col.fondo;
   sel.style.color = col.texto;
   sel.style.fontWeight = '700';
+}
+
+/* ============================== FECHA Y HORA (GUATEMALA) ============================== */
+/** Devuelve la fecha (dd/mm/aaaa) y la hora (hh:mm:ss) de un instante, en hora de Guatemala. */
+function fechaHoraGT(ms) {
+  const d = new Date(ms);
+  const partes = (opts) => Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Guatemala', hourCycle: 'h23', ...opts })
+      .formatToParts(d).map((x) => [x.type, x.value]));
+  const f = partes({ day: '2-digit', month: '2-digit', year: 'numeric' });
+  const h = partes({ hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return { fecha: `${f.day}/${f.month}/${f.year}`, hora: `${h.hour}:${h.minute}:${h.second}` };
+}
+
+/* ============================== EXPORTAR REGISTROS (CON FILTRO) ============================== */
+const FACULTADES_EXPORT = [
+  'Ingeniería Industrial', 'Ingeniería en Sistemas', 'Psicología', 'Trabajo Social',
+  'Administración Sábado', 'Administración Domingo', 'Derecho Sábado', 'Derecho Domingo',
+  'Enfermería', 'Hotelería', 'Criminología'
+];
+let formatoExport = 'pdf';
+
+/** Abre la ventana para elegir "Todo" o una facultad antes de descargar. */
+function abrirExportar(formato) {
+  formatoExport = formato;
+  const sel = $('exp-facultad');
+  if (!sel.options.length) {
+    sel.innerHTML = '<option value="__todo__">Todo (todos los registros)</option>' +
+      FACULTADES_EXPORT.map((f) => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  }
+  sel.value = '__todo__';
+  $('exp-titulo').textContent = formato === 'pdf' ? 'Descargar PDF' : 'Descargar Excel';
+  abrirModal('modal-exportar');
+}
+
+/** Genera el archivo con los registros elegidos y una columna de correlativo (N°). */
+function ejecutarExportacion() {
+  const seleccion = $('exp-facultad').value;
+  const todo = seleccion === '__todo__';
+  const registros = todo ? estado.registros : estado.registros.filter((f) => norm(f[0]) === norm(seleccion));
+  if (!registros.length) { toast('No hay registros para esa opción.', 'info'); return; }
+  cerrarModal('modal-exportar');
+
+  const etiqueta = todo ? 'Todos los registros' : 'Facultad: ' + seleccion;
+  const nombreBase = 'Registros_5K_UMG_' + (todo ? 'todos' : seleccion.replace(/[^\w]+/g, '_')) + '_' + hoyArchivo();
+  const titulo = 'Registro de corredores · ' + etiqueta;
+  const columnas = ['N°', ...estado.encabezados];
+
+  if (formatoExport === 'pdf') {
+    const filas = registros.map((f, i) => [i + 1, ...f]);
+    generarPDF(nombreBase + '.pdf', titulo, [{ titulo: '', columnas, filas }],
+      { orientation: 'landscape', fontSize: 6 });
+  } else {
+    // En Excel el costo (posición 6) y la posición (posición 15) se guardan como número
+    const filas = registros.map((f, i) => {
+      const r = [i + 1, ...f];
+      [6, 15].forEach((k) => { if (String(r[k]).trim() !== '') { const n = aNumero(r[k]); if (!isNaN(n)) r[k] = n; } });
+      return r;
+    });
+    generarXLSX(nombreBase + '.xlsx', titulo, [{ hoja: 'Registros', titulo: '', columnas, filas }]);
+  }
+}
+$('btn-exp-confirmar').addEventListener('click', ejecutarExportacion);
+
+/** Duración actual de la carrera (la configurada al iniciar, o 60 min por defecto). */
+function duracionActual() {
+  return meta.duracionMs || DURACION_CARRERA_MS;
 }
 
 /* ------------------------------- ARRANQUE ------------------------------- */
