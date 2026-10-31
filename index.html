@@ -678,12 +678,12 @@ class ErrorRed extends Error {}
  * - Usa text/plain para evitar el "preflight" CORS con Apps Script.
  * - Lanza ErrorRed si no hay conexión, hay tiempo agotado o la respuesta es inválida.
  */
-async function api(accion, datos = {}) {
+async function api(accion, datos = {}, timeoutMs = CONFIG.TIMEOUT_MS) {
   if (CONFIG.API_URL.includes('PEGAR_AQUI')) {
     throw new Error('Falta configurar CONFIG.API_URL con la URL de tu Apps Script.');
   }
   const ctrl = new AbortController();
-  const temporizador = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_MS);
+  const temporizador = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const resp = await fetch(CONFIG.API_URL, {
       method: 'POST',
@@ -1337,7 +1337,7 @@ async function procesarCola() {
       if (!item) break;
       item.estado = 'enviando'; renderCola();
       try {
-        const r = await api('registrarMeta', { dorsal: item.dorsal, llegadaMs: item.llegadaMs });
+        const r = await api('registrarMeta', { dorsal: item.dorsal, llegadaMs: item.llegadaMs }, 60000);
         if (r.ok) {
           meta.cola = meta.cola.filter((i) => i !== item);   // confirmado: sale de la cola
           meta.ultimos = r.ultimos || meta.ultimos;
@@ -1534,7 +1534,7 @@ $('btn-detener').addEventListener('click', async () => {
   const finMs = Date.now();                          // hora exacta del clic
   await conCarga($('btn-detener'), 'Deteniendo…', async () => {
     try {
-      const r = await api('detenerCarrera', { finMs });
+      const r = await api('detenerCarrera', { finMs }, 60000);
       if (r.ok || r.codigo === 'YA_DETENIDA') {
         meta.finMs = r.finMs;
         arrancarCrono(); actualizarUIMeta();
@@ -1542,7 +1542,17 @@ $('btn-detener').addEventListener('click', async () => {
       } else {
         toast(r.mensaje, 'error');
       }
-    } catch (err) { toast('No se pudo detener: ' + err.message, 'error'); }
+    } catch (err) {
+      // La respuesta pudo perderse aunque el servidor sí detuvo el cronómetro: se verifica
+      toast('La respuesta tardó. Verificando si el cronómetro se detuvo…', 'info');
+      await cargarEstadoMeta(true);
+      if (meta.finMs) {
+        arrancarCrono(); actualizarUIMeta();
+        toast('Cronómetro detenido.', 'ok');
+      } else {
+        toast('No se pudo detener: ' + err.message + ' Intenta de nuevo.', 'error');
+      }
+    }
   });
 });
 
