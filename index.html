@@ -8,6 +8,7 @@
   <!-- Tipografía -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS vía CDN -->
@@ -47,6 +48,7 @@
   <style>
     body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
     .cifras { font-variant-numeric: tabular-nums; }
+    .digital { font-family: 'Orbitron', monospace; }
     /* Sacudida breve para llamar la atención cuando un número ya fue vendido */
     @keyframes sacudir { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
     .sacudir { animation: sacudir .4s ease-in-out; }
@@ -308,12 +310,14 @@
           <div class="min-w-0 flex-1 space-y-3">
             <div class="rounded-2xl bg-black px-4 py-5 text-center ring-4 ring-slate-800 shadow-inner sm:py-7">
               <p class="text-base font-black uppercase tracking-[0.35em] text-white sm:text-xl">CRONÓMETRO</p>
-              <p id="cat-crono" class="cifras mt-2 whitespace-nowrap font-mono font-bold text-red-500 text-[clamp(1.6rem,7vw,3.75rem)]" style="text-shadow:0 0 12px rgba(239,68,68,.6)">00:00:00.000</p>
+              <p id="cat-crono" class="cifras digital mt-2 whitespace-nowrap font-bold text-red-500 text-[clamp(1.4rem,6vw,3.25rem)]" style="text-shadow:0 0 12px rgba(239,68,68,.6)">00:00:00.000</p>
             </div>
-            <div class="tarjeta !p-4 text-center">
-              <p class="text-sm font-semibold text-slate-700">Llegadas a meta: <span id="cat-total" class="cifras font-bold text-black">0</span></p>
-              <p class="text-sm font-semibold text-slate-700">Fecha: <span id="cat-fecha" class="cifras font-bold text-black">--/--/----</span></p>
-              <p class="text-sm font-semibold text-slate-700">Hora de inicio: <span id="cat-hora-inicio" class="cifras font-bold text-black">--:--:--</span></p>
+            <div class="tarjeta !p-3 text-center">
+              <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm font-semibold text-slate-700">
+                <span>Llegadas a meta: <span id="cat-total" class="cifras font-bold text-black">0</span></span>
+                <span>Fecha: <span id="cat-fecha" class="cifras font-bold text-black">--/--/----</span></span>
+                <span>Hora de inicio: <span id="cat-hora-inicio" class="cifras font-bold text-black">--:--:--</span></span>
+              </div>
             </div>
           </div>
           <img src="https://i.ibb.co/ZRZm9S4J/5k.png" alt="Logo 5K" class="h-14 w-auto shrink-0 object-contain sm:h-24">
