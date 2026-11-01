@@ -110,7 +110,7 @@
   <!-- ===================== VENTANA EMERGENTE DEL CORREDOR ===================== -->
   <div id="modal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="m-nombre">
     <div class="w-full max-w-md rounded-2xl bg-white p-6 text-black shadow-xl">
-      <div class="flex justify-center rounded-xl bg-navy px-4 py-3">
+      <div class="flex justify-center">
         <img src="logo-carrera-5k.png" alt="Logo Carrera 5K UMG Puerto Barrios" class="h-16 w-auto">
       </div>
       <p class="mt-4 text-center text-lg font-extrabold">🏁 ¡Felicidades por cruzar la meta!</p>
@@ -129,14 +129,6 @@
         <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
           <dt class="text-sm font-semibold">Tu tiempo</dt>
           <dd id="m-tiempo" class="cifras text-right text-lg font-extrabold text-navy"></dd>
-        </div>
-        <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
-          <dt class="text-sm font-semibold">Tiempo récord de la carrera</dt>
-          <dd id="m-record" class="cifras text-right text-base font-bold"></dd>
-        </div>
-        <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
-          <dt class="text-sm font-semibold">Récord de tu categoría y rama</dt>
-          <dd id="m-record-grupo" class="cifras text-right text-base font-bold"></dd>
         </div>
       </dl>
 
@@ -162,7 +154,7 @@
 
 const CONFIG = {
   // *** PEGA AQUÍ la misma URL de tu implementación de Apps Script (termina en /exec) ***
-  API_URL: 'https://script.google.com/macros/s/AKfycbwwwl-KITEzHYFfKF4f4_IBMZ8Ft-RyHyu9VwEcDH3xKNDlKuoa3k52yLsf463GSk0u/exec',
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
   TIMEOUT_MS: 30000,
   REFRESCO_MS: 20000          // se actualiza sola cada 20 s mientras la página está abierta
 };
@@ -302,8 +294,6 @@ function abrirModal(f) {
   $('m-general').textContent = `${f.posicion} de ${datos.total}`;
   $('m-grupo').textContent = `${f.posicionGrupo} de ${g.total}`;
   $('m-tiempo').textContent = f.tiempo;
-  $('m-record').textContent = datos.recordGeneral || '—';
-  $('m-record-grupo').textContent = `${g.recordTiempo} · ${f.categoria} · ${f.rama}`;
   $('modal').classList.remove('hidden');
   document.querySelector('#modal [data-cerrar]').focus();
 }
