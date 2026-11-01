@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tabla de posiciones · Carrera 5K UMG</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS vía CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { navy: { DEFAULT: '#0B2447', 700: '#071A35', 50: '#E8EDF6' } },
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+
+  <!-- Librerías de exportación (versiones fijas) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @layer components {
+      .campo { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-black placeholder-slate-400 focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/30; }
+      .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50; }
+      .btn-navy { @apply bg-navy text-white hover:bg-navy-700 focus:ring-navy; }
+      .btn-claro { @apply border border-slate-300 bg-white text-black hover:bg-slate-50 focus:ring-slate-400; }
+      .btn-verde { @apply bg-emerald-700 text-white hover:bg-emerald-800 focus:ring-emerald-600; }
+      .btn-rojo { @apply bg-red-700 text-white hover:bg-red-800 focus:ring-red-600; }
+      .tarjeta { @apply rounded-2xl bg-white p-5 text-black shadow-sm ring-1 ring-slate-200 sm:p-6; }
+      .th { @apply whitespace-nowrap bg-navy px-3 py-2 text-left text-xs font-semibold text-white; }
+      .td { @apply px-3 py-2.5 text-sm text-black; }
+    }
+  </style>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .cifras { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+
+<body class="flex min-h-screen flex-col bg-[#F0F2F7] text-black antialiased">
+
+  <!-- ===================== ENCABEZADO ===================== -->
+  <header class="bg-navy text-white shadow-md">
+    <div class="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
+      <span class="rounded-xl bg-white p-1">
+        <img src="https://i.ibb.co/gZzdHfR0/55-a-os-UMG-pb-sticker.png" alt="Logo UMG Puerto Barrios" class="h-12 w-auto">
+      </span>
+      <div>
+        <h1 class="text-lg font-bold leading-tight sm:text-xl">Tabla de posiciones · Carrera 5K</h1>
+        <p class="text-xs text-white/70 sm:text-sm">Universidad Mariano Gálvez · Puerto Barrios</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ CONTENIDO ============================= -->
+  <main class="mx-auto w-full max-w-6xl flex-1 space-y-5 px-4 py-6">
+
+    <!-- Barra de búsqueda y actualización -->
+    <div class="tarjeta flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div class="flex-1">
+        <label for="buscar" class="mb-1 block text-sm font-semibold">Buscar corredor (nombre o No.)</label>
+        <input id="buscar" type="search" class="campo" placeholder="Ej. Ana o 015" autocomplete="off">
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-pdf" type="button" class="btn btn-rojo" disabled>Descargar PDF</button>
+        <button id="btn-xlsx" type="button" class="btn btn-verde" disabled>Descargar Excel</button>
+        <button id="btn-actualizar" type="button" class="btn btn-claro">Actualizar</button>
+      </div>
+    </div>
+
+    <!-- Resumen general -->
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="tarjeta">
+        <p class="text-sm font-semibold text-slate-700">Corredores que terminaron</p>
+        <p id="kpi-total" class="cifras mt-1 text-3xl font-extrabold text-navy">0</p>
+      </div>
+      <div class="tarjeta sm:col-span-2">
+        <p class="text-sm font-semibold text-slate-700">Récord general de la carrera</p>
+        <p id="kpi-record" class="cifras mt-1 text-3xl font-extrabold text-navy">—</p>
+      </div>
+    </div>
+
+    <!-- Estado de carga / error -->
+    <div id="aviso" class="hidden rounded-lg border px-3 py-2.5 text-sm font-semibold"></div>
+
+    <!-- Tabla de posiciones -->
+    <div class="tarjeta !p-0 overflow-hidden">
+      <p id="conteo" class="px-5 pt-4 text-sm text-slate-700"></p>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full min-w-[640px]">
+          <thead>
+            <tr>
+              <th class="th">Posición</th>
+              <th class="th">No.</th>
+              <th class="th">Nombre</th>
+              <th class="th">Categoría</th>
+              <th class="th">Rama</th>
+              <th class="th text-right">Tiempo</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-body" class="divide-y divide-slate-100">
+            <tr><td colspan="6" class="td py-10 text-center text-slate-700">Cargando posiciones…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== VENTANA EMERGENTE DEL CORREDOR ===================== -->
+  <div id="modal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="m-nombre">
+    <div class="w-full max-w-md rounded-2xl bg-white p-6 text-black shadow-xl">
+      <p class="text-center text-lg font-extrabold">🏁 ¡Felicidades por cruzar la meta!</p>
+      <h2 id="m-nombre" class="mt-2 text-center text-xl font-bold"></h2>
+      <p id="m-dato" class="cifras text-center text-sm text-slate-700"></p>
+
+      <dl class="mt-5 space-y-3">
+        <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
+          <dt class="text-sm font-semibold">Tu posición general</dt>
+          <dd id="m-general" class="cifras text-right text-lg font-extrabold text-navy"></dd>
+        </div>
+        <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
+          <dt class="text-sm font-semibold">Posición en tu categoría y rama</dt>
+          <dd id="m-grupo" class="cifras text-right text-lg font-extrabold text-navy"></dd>
+        </div>
+        <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
+          <dt class="text-sm font-semibold">Tu tiempo</dt>
+          <dd id="m-tiempo" class="cifras text-right text-lg font-extrabold text-navy"></dd>
+        </div>
+        <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
+          <dt class="text-sm font-semibold">Tiempo récord de la carrera</dt>
+          <dd id="m-record" class="cifras text-right text-base font-bold"></dd>
+        </div>
+        <div class="flex items-center justify-between rounded-xl bg-[#F0F2F7] px-4 py-3">
+          <dt class="text-sm font-semibold">Récord de tu categoría y rama</dt>
+          <dd id="m-record-grupo" class="cifras text-right text-base font-bold"></dd>
+        </div>
+      </dl>
+
+      <div class="mt-5 flex justify-end">
+        <button type="button" class="btn btn-navy" data-cerrar>Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ PIE DE PÁGINA ============================ -->
+  <footer class="mt-8 border-t border-slate-300 bg-white py-4 text-center text-sm text-black">
+    <p>· Universidad Mariano Gálvez · Puerto Barrios, Izabal</p>
+    <p>© M.A. Inga. Delmy Valiente</p>
+  </footer>
+
+<script>
+'use strict';
+/* =============================================================================
+ *  TABLA DE POSICIONES · Carrera 5K UMG Puerto Barrios (página pública, solo consulta)
+ *  No pide usuario ni contraseña. Solo lee datos mediante la acción pública
+ *  "getPosiciones" del backend. No muestra costo, vendedor ni talla.
+ * ============================================================================= */
+
+const CONFIG = {
+  // *** PEGA AQUÍ la misma URL de tu implementación de Apps Script (termina en /exec) ***
+  API_URL: 'https://script.google.com/macros/s/PEGAR_AQUI_TU_ID_DE_IMPLEMENTACION/exec',
+  TIMEOUT_MS: 30000,
+  REFRESCO_MS: 20000          // se actualiza sola cada 20 s mientras la página está abierta
+};
+
+/** Datos cargados desde el servidor. */
+const datos = { filas: [], grupos: {}, total: 0, recordGeneral: '' };
+let filasFiltradas = [];
+
+const $ = (id) => document.getElementById(id);
+
+/** Escapa texto para insertarlo de forma segura en HTML. */
+function esc(t) {
+  return String(t === null || t === undefined ? '' : t).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+/** Minúsculas y sin tildes (para buscar sin importar acentos). */
+function norm(t) {
+  return String(t === null || t === undefined ? '' : t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+/** Muestra un mensaje de estado (tipo: 'error' | 'info'). */
+function aviso(mensaje, tipo = 'info') {
+  const c = $('aviso');
+  c.className = 'rounded-lg border px-3 py-2.5 text-sm font-semibold ' +
+    (tipo === 'error' ? 'border-red-300 bg-red-50 text-red-900' : 'border-slate-300 bg-slate-50 text-black');
+  c.textContent = mensaje;
+}
+function ocultarAviso() { $('aviso').className = 'hidden'; $('aviso').textContent = ''; }
+
+/**
+ * Llama al backend con fetch().
+ * text/plain evita el "preflight" CORS con Apps Script.
+ */
+async function api(accion, extra = {}) {
+  if (CONFIG.API_URL.includes('PEGAR_AQUI')) {
+    throw new Error('Falta configurar CONFIG.API_URL con la URL de tu Apps Script.');
+  }
+  const ctrl = new AbortController();
+  const temporizador = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_MS);
+  try {
+    const resp = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ accion, ...extra }),
+      signal: ctrl.signal
+    });
+    if (!resp.ok) throw new Error(`El servidor respondió con error (${resp.status}).`);
+    let data;
+    try { data = await resp.json(); }
+    catch (_) { throw new Error('Respuesta inválida del servidor. Revisa que la implementación tenga acceso para "Cualquier persona".'); }
+    return data;
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('La solicitud tardó demasiado. Revisa tu conexión.');
+    if (err instanceof TypeError) throw new Error('Sin conexión con el servidor. Revisa tu internet.');
+    throw err;
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
+/** Carga la tabla desde el servidor. 'silencioso' evita mensajes al refrescar en automático. */
+async function cargarPosiciones(silencioso = false) {
+  const btn = $('btn-actualizar');
+  btn.disabled = true;
+  try {
+    const r = await api('getPosiciones');
+    if (!r.ok) throw new Error(r.mensaje || 'No se pudieron cargar las posiciones.');
+    datos.filas = r.filas || [];
+    datos.grupos = r.grupos || {};
+    datos.total = r.total || 0;
+    datos.recordGeneral = r.recordGeneral || '';
+    $('kpi-total').textContent = datos.total.toLocaleString('es-GT');
+    $('kpi-record').textContent = datos.recordGeneral || '—';
+    ocultarAviso();
+    filtrar();
+    habilitarDescargas(datos.filas.length > 0);
+  } catch (err) {
+    if (!silencioso || !datos.filas.length) aviso(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/** Filtra por nombre o número. "015" y "15" encuentran al mismo corredor. */
+function filtrar() {
+  const q = norm($('buscar').value);
+  const qNum = /^\d+$/.test(q) ? Number(q) : null;
+  filasFiltradas = !q ? datos.filas : datos.filas.filter((f) =>
+    norm(f.nombre).includes(q) ||
+    (qNum !== null && /^\d+$/.test(f.dorsal) && Number(f.dorsal) === qNum));
+  renderTabla();
+}
+let tFiltro = null;
+$('buscar').addEventListener('input', () => { clearTimeout(tFiltro); tFiltro = setTimeout(filtrar, 150); });
+
+/** Dibuja la tabla. Cada nombre es un botón que abre la ventana del corredor. */
+function renderTabla() {
+  const cuerpo = $('tabla-body');
+  if (!datos.filas.length) {
+    cuerpo.innerHTML = '<tr><td colspan="6" class="td py-10 text-center text-slate-700">Todavía no hay corredores que hayan cruzado la meta.</td></tr>';
+    $('conteo').textContent = '';
+    return;
+  }
+  if (!filasFiltradas.length) {
+    cuerpo.innerHTML = '<tr><td colspan="6" class="td py-10 text-center text-slate-700">No se encontró ningún corredor con ese dato.</td></tr>';
+    $('conteo').textContent = 'Mostrando 0 de ' + datos.filas.length + ' corredores.';
+    return;
+  }
+  // Se guarda la posición real (posicion) de cada fila para abrir la ventana con el índice correcto
+  cuerpo.innerHTML = filasFiltradas.map((f) => `
+    <tr class="hover:bg-slate-50">
+      <td class="td cifras text-center font-extrabold text-navy">${esc(f.posicion)}</td>
+      <td class="td cifras">${esc(f.dorsal)}</td>
+      <td class="td">
+        <button type="button" data-posicion="${esc(f.posicion)}"
+          class="text-left font-semibold text-navy underline decoration-slate-300 underline-offset-4 hover:decoration-navy focus:outline-none focus:ring-2 focus:ring-navy rounded">
+          ${esc(f.nombre)}
+        </button>
+      </td>
+      <td class="td">${esc(f.categoria)}</td>
+      <td class="td">${esc(f.rama)}</td>
+      <td class="td cifras text-right font-semibold">${esc(f.tiempo)}</td>
+    </tr>`).join('');
+  $('conteo').textContent = filasFiltradas.length === datos.filas.length
+    ? `${datos.filas.length} corredores en la tabla.`
+    : `Mostrando ${filasFiltradas.length} de ${datos.filas.length} corredores.`;
+}
+
+/* ------------------------ VENTANA DEL CORREDOR ------------------------ */
+/** Abre la ventana emergente con la posición y los tiempos del corredor. */
+$('tabla-body').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-posicion]');
+  if (!b) return;
+  const f = datos.filas.find((x) => String(x.posicion) === b.dataset.posicion);
+  if (f) abrirModal(f);
+});
+
+function abrirModal(f) {
+  const g = datos.grupos[f.grupo] || { total: 0, recordTiempo: '—' };
+  $('m-nombre').textContent = f.nombre;
+  $('m-dato').textContent = `No. ${f.dorsal} · ${f.facultad}`;
+  $('m-general').textContent = `${f.posicion} de ${datos.total}`;
+  $('m-grupo').textContent = `${f.posicionGrupo} de ${g.total}`;
+  $('m-tiempo').textContent = f.tiempo;
+  $('m-record').textContent = datos.recordGeneral || '—';
+  $('m-record-grupo').textContent = `${g.recordTiempo} · ${f.categoria} · ${f.rama}`;
+  $('modal').classList.remove('hidden');
+  document.querySelector('#modal [data-cerrar]').focus();
+}
+function cerrarModal() { $('modal').classList.add('hidden'); }
+document.querySelector('#modal [data-cerrar]').addEventListener('click', cerrarModal);
+$('modal').addEventListener('mousedown', (e) => { if (e.target === $('modal')) cerrarModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarModal(); });
+
+/* ------------------------------ DESCARGAS ------------------------------ */
+function habilitarDescargas(si) { $('btn-pdf').disabled = !si; $('btn-xlsx').disabled = !si; }
+
+/** Encabezados y filas que se descargan (mismas columnas que la tabla en pantalla). */
+const CABECERA = ['Posición', 'No.', 'Nombre', 'Categoría', 'Rama', 'Tiempo'];
+function filasDescarga() {
+  return filasFiltradas.map((f) => [f.posicion, f.dorsal, f.nombre, f.categoria, f.rama, f.tiempo]);
+}
+
+/** PDF con membrete de la UMG en cada página y paginación. */
+$('btn-pdf').addEventListener('click', () => {
+  if (!window.jspdf || !window.jspdf.jsPDF) { aviso('La librería de PDF no cargó. Revisa tu conexión.', 'error'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+  const ancho = doc.internal.pageSize.getWidth();
+  const alto = doc.internal.pageSize.getHeight();
+  const fecha = new Date().toLocaleString('es-GT');
+
+  doc.autoTable({
+    head: [CABECERA],
+    body: filasDescarga(),
+    startY: 80,
+    margin: { top: 80, left: 36, right: 36, bottom: 40 },
+    styles: { fontSize: 9, cellPadding: 4, textColor: 0 },
+    headStyles: { fillColor: [11, 36, 71], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [240, 242, 247] },
+    columnStyles: { 0: { halign: 'center' }, 1: { halign: 'center' }, 5: { halign: 'right' } },
+    didDrawPage: () => {
+      doc.setFillColor(11, 36, 71); doc.rect(0, 0, ancho, 62, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+      doc.text('Universidad Mariano Gálvez · Puerto Barrios', 36, 28);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+      doc.text('Carrera 5K · Tabla de posiciones generales', 36, 46);
+      doc.setFontSize(8);
+      doc.text(`Generado: ${fecha}`, ancho - 36, 46, { align: 'right' });
+    }
+  });
+
+  const paginas = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= paginas; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(0, 0, 0);
+    doc.text('© M.A. Inga. Delmy Valiente', 36, alto - 18);
+    doc.text(`Página ${i} de ${paginas}`, ancho - 36, alto - 18, { align: 'right' });
+  }
+  doc.save(`Posiciones_5K_UMG_${new Date().toISOString().slice(0, 10)}.pdf`);
+});
+
+/** Excel con la tabla limpia (la posición y el número se guardan como número, el No. conserva ceros como texto). */
+$('btn-xlsx').addEventListener('click', () => {
+  if (!window.XLSX) { aviso('La librería de Excel no cargó. Revisa tu conexión.', 'error'); return; }
+  const filas = filasDescarga().map((r) => [Number(r[0]), String(r[1]), r[2], r[3], r[4], r[5]]);
+  const hoja = XLSX.utils.aoa_to_sheet([CABECERA, ...filas]);
+  hoja['!cols'] = [{ wch: 10 }, { wch: 8 }, { wch: 34 }, { wch: 22 }, { wch: 12 }, { wch: 14 }];
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Posiciones');
+  XLSX.writeFile(libro, `Posiciones_5K_UMG_${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
+/* ------------------------------ ARRANQUE ------------------------------ */
+$('btn-actualizar').addEventListener('click', () => cargarPosiciones());
+cargarPosiciones();
+setInterval(() => cargarPosiciones(true), CONFIG.REFRESCO_MS); // actualización automática en silencio
+</script>
+</body>
+</html>
